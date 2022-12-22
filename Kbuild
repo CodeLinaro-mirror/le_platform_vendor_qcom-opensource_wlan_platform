@@ -44,4 +44,5 @@ obj-$(CONFIG_CNSS2) += cnss2/
 obj-$(CONFIG_ICNSS2) += icnss2/
 obj-$(CONFIG_CNSS_GENL) += cnss_genl/
 obj-$(CONFIG_WCNSS_MEM_PRE_ALLOC) += cnss_prealloc/
+obj-$(CONFIG_CNSS_CRYPTO) += cnss_crypto/
 obj-y += cnss_utils/
