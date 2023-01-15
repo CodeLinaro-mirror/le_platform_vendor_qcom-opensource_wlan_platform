@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2016-2021, The Linux Foundation. All rights reserved. */
+/*
+ * Copyright (c) 2016-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ */
 
 #define pr_fmt(fmt) "cnss_logger: %s: " fmt, __func__
 
@@ -7,7 +10,12 @@
 #include <linux/export.h>
 #include <linux/module.h>
 #include <linux/export.h>
+#include "cnss_logger.h"
+#ifdef CONFIG_CNSS_OUT_OF_TREE
+#include "cnss_logger.h"
+#else
 #include <net/cnss_logger.h>
+#endif
 #include "logger.h"
 
 static DEFINE_MUTEX(logger_sem);

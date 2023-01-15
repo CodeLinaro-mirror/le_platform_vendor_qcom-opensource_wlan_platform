@@ -1,11 +1,18 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2016-2021, The Linux Foundation. All rights reserved. */
+/*
+ * Copyright (c) 2016-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ */
 
 #include <linux/init.h>
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/export.h>
+#ifdef CONFIG_CNSS_OUT_OF_TREE
+#include "cnss_logger.h"
+#else
 #include <net/cnss_logger.h>
+#endif
 #include "logger.h"
 
 static struct logger_context *ctx;
@@ -42,3 +49,6 @@ static void __exit logger_module_exit(void)
 
 module_init(logger_module_init);
 module_exit(logger_module_exit);
+
+MODULE_LICENSE("GPL v2");
+MODULE_DESCRIPTION("CNSS Logging Service Driver");

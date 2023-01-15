@@ -1,5 +1,8 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
-/* Copyright (c) 2013-2021, The Linux Foundation. All rights reserved. */
+/*
+ * Copyright (c) 2013-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ */
 
 #ifndef _NET_CNSS_H_
 #define _NET_CNSS_H_
@@ -10,7 +13,6 @@
 #include <linux/mmc/sdio_func.h>
 #include <linux/interrupt.h>
 
-#ifdef CONFIG_CNSS
 #define MAX_FIRMWARE_SIZE (1 * 1024 * 1024)
 #define CNSS_MAX_FILE_NAME	20
 #define PINCTRL_SLEEP  0
@@ -177,7 +179,6 @@ int cnss_pm_runtime_request(struct device *dev, enum
 			    cnss_runtime_request request);
 void cnss_set_cc_source(enum cnss_cc_src cc_source);
 enum cnss_cc_src cnss_get_cc_source(void);
-#endif
 
 void cnss_pm_wake_lock_init(struct wakeup_source **ws, const char *name);
 void cnss_pm_wake_lock(struct wakeup_source *ws);
@@ -228,7 +229,6 @@ void cnss_pm_wake_lock_timeout(struct wakeup_source *ws, ulong msec);
 void cnss_pm_wake_lock_release(struct wakeup_source *ws);
 void cnss_pm_wake_lock_destroy(struct wakeup_source *ws);
 void cnss_get_monotonic_boottime(struct timespec64 *ts);
-void cnss_get_boottime(struct timespec *ts);
 void cnss_init_delayed_work(struct delayed_work *work, work_func_t func);
 int cnss_vendor_cmd_reply(struct sk_buff *skb);
 int cnss_set_cpus_allowed_ptr(struct task_struct *task, ulong cpu);

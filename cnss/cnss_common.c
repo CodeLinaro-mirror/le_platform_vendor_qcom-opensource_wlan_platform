@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2015-2021, The Linux Foundation. All rights reserved. */
+/*
+ * Copyright (c) 2015-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ */
 
 #include <linux/export.h>
 #include <linux/kernel.h>
@@ -11,7 +14,11 @@
 #include <linux/suspend.h>
 #include <linux/mutex.h>
 #include <linux/rwsem.h>
+#ifdef CONFIG_CNSS_OUT_OF_TREE
+#include "cnss.h"
+#else
 #include <net/cnss.h>
+#endif
 #include "cnss_common.h"
 #include <net/cfg80211.h>
 
@@ -218,12 +225,6 @@ void cnss_get_monotonic_boottime(struct timespec64 *ts)
 }
 EXPORT_SYMBOL(cnss_get_monotonic_boottime);
 
-void cnss_get_boottime(struct timespec *ts)
-{
-	ktime_get_ts(ts);
-}
-EXPORT_SYMBOL(cnss_get_boottime);
-
 void cnss_init_delayed_work(struct delayed_work *work, work_func_t func)
 {
 	INIT_DELAYED_WORK(work, func);
@@ -248,7 +249,7 @@ EXPORT_SYMBOL(cnss_set_cpus_allowed_ptr);
  */
 void cnss_dump_stack(struct task_struct *task)
 {
-	show_stack(task, NULL);
+	show_stack(task, NULL, KERN_DEFAULT);
 }
 EXPORT_SYMBOL(cnss_dump_stack);
 
@@ -434,3 +435,6 @@ int cnss_common_unregister_tsf_captured_handler(struct device *dev,
 		return -EINVAL;
 }
 EXPORT_SYMBOL(cnss_common_unregister_tsf_captured_handler);
+
+MODULE_LICENSE("GPL v2");
+MODULE_DESCRIPTION("CNSS Platform Driver");

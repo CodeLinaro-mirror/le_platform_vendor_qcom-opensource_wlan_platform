@@ -40,7 +40,16 @@ ifeq ($(CONFIG_AUTO_PROJECT),y)
 KBUILD_CPPFLAGS += -DCONFIG_PULLDOWN_WLANEN
 endif
 
+ifeq ($(CONFIG_CNSS_ASYNC),m)
+KBUILD_CPPFLAGS += -DCONFIG_CNSS_ASYNC
+endif
+
+ifeq ($(CONFIG_CNSS_LOGGER),m)
+KBUILD_CPPFLAGS += -DCONFIG_CNSS_LOGGER
+endif
+
 obj-$(CONFIG_CNSS2) += cnss2/
+obj-$(CONFIG_CNSS) += cnss/
 obj-$(CONFIG_ICNSS2) += icnss2/
 obj-$(CONFIG_CNSS_GENL) += cnss_genl/
 obj-$(CONFIG_WCNSS_MEM_PRE_ALLOC) += cnss_prealloc/
