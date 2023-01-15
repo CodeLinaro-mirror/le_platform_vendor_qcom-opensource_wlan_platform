@@ -249,7 +249,9 @@ EXPORT_SYMBOL(cnss_set_cpus_allowed_ptr);
  */
 void cnss_dump_stack(struct task_struct *task)
 {
-	show_stack(task, NULL, KERN_DEFAULT);
+	/* TODO
+	 * show_stack(task, NULL, KERN_DEFAULT);
+	 */
 }
 EXPORT_SYMBOL(cnss_dump_stack);
 
