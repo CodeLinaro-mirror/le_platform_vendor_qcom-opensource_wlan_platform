@@ -1,9 +1,16 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2011-2013, 2015, 2018-2021, The Linux Foundation. */
+/*
+ * Copyright (c) 2011-2013, 2015, 2018-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ */
 
 #include <linux/export.h>
 #include "qcomwlan_secif.h"
 #include <crypto/aes.h>
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5,15,0))
+#include <crypto/internal/cipher.h>
+MODULE_IMPORT_NS(CRYPTO_INTERNAL);
+#endif
 
 /* APIs for calling crypto routines from kernel
  */
@@ -33,6 +40,7 @@ int wcnss_wlan_crypto_ahash_setkey(struct crypto_ahash *tfm, const u8 *key,
 }
 EXPORT_SYMBOL(wcnss_wlan_crypto_ahash_setkey);
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(5,15,0))
 void wcnss_wlan_ablkcipher_request_free(struct ablkcipher_request *req)
 {
 	ablkcipher_request_free(req);
@@ -44,6 +52,7 @@ void wcnss_wlan_crypto_free_ablkcipher(struct crypto_ablkcipher *tfm)
 	crypto_free_ablkcipher(tfm);
 }
 EXPORT_SYMBOL(wcnss_wlan_crypto_free_ablkcipher);
+#endif
 
 void wcnss_wlan_crypto_free_cipher(struct crypto_cipher *tfm)
 {
@@ -159,3 +168,6 @@ void wcnss_wlan_cmac_calc_mic(struct crypto_cipher *tfm, u8 *m,
 	memcpy(mac, x, CMAC_TLEN);
 }
 EXPORT_SYMBOL(wcnss_wlan_cmac_calc_mic);
+
+MODULE_LICENSE("GPL v2");
+MODULE_DESCRIPTION("CNSS Crypto Driver");
