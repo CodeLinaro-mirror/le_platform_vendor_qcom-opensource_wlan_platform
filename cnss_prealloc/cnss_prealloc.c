@@ -320,8 +320,10 @@ static bool cnss_prealloc_is_valid_dt_node_found(void)
 
 static int __init cnss_prealloc_init(void)
 {
-	if (!cnss_prealloc_is_valid_dt_node_found())
-		return -ENODEV;
+	if (!cnss_prealloc_is_valid_dt_node_found()) {
+		//return -ENODEV;
+		printk("failed to found valid dt");
+	}
 
 	return cnss_pool_init();
 }

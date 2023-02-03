@@ -215,8 +215,10 @@ static bool cld80211_is_valid_dt_node_found(void)
 
 static int __init cld80211_init(void)
 {
-	if (!cld80211_is_valid_dt_node_found())
-		return -ENODEV;
+	if (!cld80211_is_valid_dt_node_found()) {
+		printk("failed to found valid dt note");
+		//return -ENODEV;
+	}
 
 	return __cld80211_init();
 }
