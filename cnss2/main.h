@@ -497,6 +497,7 @@ struct cnss_plat_data {
 	char fw_build_id[QMI_WLFW_MAX_BUILD_ID_LEN + 1];
 	u32 otp_version;
 	u32 fw_mem_seg_len;
+	u32 mhi_seg_len;
 	struct cnss_fw_mem fw_mem[QMI_WLFW_MAX_NUM_MEM_SEG_V01];
 	struct cnss_fw_mem m3_mem;
 	struct cnss_fw_mem *cal_mem;
