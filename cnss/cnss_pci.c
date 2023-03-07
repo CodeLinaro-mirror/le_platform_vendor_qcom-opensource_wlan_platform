@@ -1,5 +1,8 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2013-2021, The Linux Foundation. All rights reserved. */
+/*
+ * Copyright (c) 2013-2021, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ */
 
 #include <asm/dma-iommu.h>
 #include <linux/iommu.h>
@@ -33,14 +36,23 @@
 #include <linux/msm_pcie.h>
 #include <soc/qcom/subsystem_restart.h>
 #include <soc/qcom/subsystem_notif.h>
-#include <soc/qcom/ramdump.h>
 #include <net/cfg80211.h>
 #include <soc/qcom/memory_dump.h>
+#ifdef CONFIG_CNSS_OUT_OF_TREE
+#include "cnss.h"
+#include "ramdump.h"
+#else
 #include <net/cnss.h>
+#include <soc/qcom/ramdump.h>
+#endif
 #include "cnss_common.h"
 
 #ifdef CONFIG_WCNSS_MEM_PRE_ALLOC
+#ifdef CONFIG_CNSS_OUT_OF_TREE
+#include "cnss_prealloc.h"
+#else
 #include <net/cnss_prealloc.h>
+#endif
 #endif
 
 #define subsys_to_drv(d) container_of(d, struct cnss_data, subsys_desc)
@@ -1122,7 +1134,7 @@ static int get_image_file(const u8 *index_info, u8 *file_name,
 
 static void print_allocated_image_table(void)
 {
-	u32 seg = 0, count = 0;
+	u32 seg = 0;
 	u8 *dump_addr;
 	struct segment_memory *pseg_mem = penv->fw_seg_mem;
 	struct segment_memory *p_bdata_seg_mem = penv->bdata_seg_mem;
@@ -2399,7 +2411,7 @@ again:
 
 		ret = wdrv->probe(pdev, penv->id);
 		if (ret) {
-			wcnss_prealloc_check_memory_leak();
+			/* TODO removed wcnss_prealloc_check_memory_leak */
 			wcnss_pre_alloc_reset();
 
 			if (probe_again > 3) {
@@ -2488,7 +2500,7 @@ void cnss_wlan_unregister_driver(struct cnss_wlan_driver *driver)
 	if (wdrv->remove)
 		wdrv->remove(pdev);
 
-	wcnss_prealloc_check_memory_leak();
+	/* removed wcnss_prealloc_check_memory_leak */
 	wcnss_pre_alloc_reset();
 
 	cnss_msm_pcie_deregister_event(&penv->event_reg);
@@ -3007,7 +3019,7 @@ static int cnss_probe(struct platform_device *pdev)
 		} else {
 			desc = devm_register_esoc_client(dev, client_desc);
 			if (IS_ERR_OR_NULL(desc)) {
-				ret = PTR_RET(desc);
+				ret = PTR_ERR_OR_ZERO(desc);
 				pr_err("%s: can't find esoc desc\n", __func__);
 				goto err_esoc_reg;
 			}
@@ -3277,7 +3289,7 @@ void cnss_request_pm_qos_type(int latency_type, u32 qos_val)
 		return;
 	}
 
-	pm_qos_add_request(&penv->qos_request, latency_type, qos_val);
+	cpu_latency_qos_add_request(&penv->qos_request, qos_val);
 }
 EXPORT_SYMBOL(cnss_request_pm_qos_type);
 
@@ -3288,7 +3300,7 @@ void cnss_request_pm_qos(u32 qos_val)
 		return;
 	}
 
-	pm_qos_add_request(&penv->qos_request, PM_QOS_CPU_DMA_LATENCY, qos_val);
+	cpu_latency_qos_add_request(&penv->qos_request, qos_val);
 }
 EXPORT_SYMBOL(cnss_request_pm_qos);
 
@@ -3299,7 +3311,7 @@ void cnss_remove_pm_qos(void)
 		return;
 	}
 
-	pm_qos_remove_request(&penv->qos_request);
+	cpu_latency_qos_remove_request(&penv->qos_request);
 }
 EXPORT_SYMBOL(cnss_remove_pm_qos);
 
@@ -3310,7 +3322,7 @@ void cnss_pci_request_pm_qos_type(int latency_type, u32 qos_val)
 		return;
 	}
 
-	pm_qos_add_request(&penv->qos_request, latency_type, qos_val);
+	cpu_latency_qos_add_request(&penv->qos_request, qos_val);
 }
 EXPORT_SYMBOL(cnss_pci_request_pm_qos_type);
 
@@ -3321,7 +3333,7 @@ void cnss_pci_request_pm_qos(u32 qos_val)
 		return;
 	}
 
-	pm_qos_add_request(&penv->qos_request, PM_QOS_CPU_DMA_LATENCY, qos_val);
+	cpu_latency_qos_add_request(&penv->qos_request, qos_val);
 }
 EXPORT_SYMBOL(cnss_pci_request_pm_qos);
 
@@ -3332,7 +3344,7 @@ void cnss_pci_remove_pm_qos(void)
 		return;
 	}
 
-	pm_qos_remove_request(&penv->qos_request);
+	cpu_latency_qos_remove_request(&penv->qos_request);
 }
 EXPORT_SYMBOL(cnss_pci_remove_pm_qos);
 
