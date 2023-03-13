@@ -6195,21 +6195,29 @@ static bool wlfw_is_valid_dt_node_found(void)
 {
 	struct device_node *dn = NULL;
 
+	printk("qcdbg, enter wlfw_is_valid_dt_node_found");
 	for_each_node_with_property(dn, "qcom,wlan") {
-		if (of_device_is_available(dn))
+		printk("qcdbg, found qcom,wlan");
+		if (of_device_is_available(dn)) {
+			printk("found valid dn");
 			break;
+		}
 	}
 
 	if (dn)
 		return true;
 
+	printk("qcdbg, wlfw_is_valid_dt_node_found return false");
 	return false;
 }
 
 static int __init wlfw_init(void)
 {
-	if (!wlfw_is_valid_dt_node_found())
-		return -ENODEV;
+	printk("qcdbg, wlfw_init");
+	if (!wlfw_is_valid_dt_node_found()) {
+		printk("return false");
+		//return -ENODEV;
+	}
 
 	return 0;
 }
