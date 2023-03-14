@@ -4,7 +4,9 @@
  * Copyright (c) 2023 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
+#if IS_ENABLED(CONFIG_ARM_DMA_USE_IOMMU)
 #include <asm/dma-iommu.h>
+#endif
 #include <linux/iommu.h>
 #include <linux/export.h>
 #include <linux/err.h>
@@ -229,7 +231,9 @@ static struct cnss_data {
 	struct cnss_wlan_driver *driver;
 	struct pci_dev *pdev;
 	const struct pci_device_id *id;
+#if IS_ENABLED(CONFIG_ARM_DMA_USE_IOMMU)
 	struct dma_iommu_mapping *smmu_mapping;
+#endif
 	bool smmu_s1_bypass;
 	dma_addr_t smmu_iova_start;
 	size_t smmu_iova_len;
@@ -1437,7 +1441,7 @@ static int cnss_wlan_is_codeswap_supported(u16 revision)
 
 static int cnss_smmu_init(struct device *dev)
 {
-#ifdef CNSS_COMPLIE_ISSUE_FIX_LATER_IFNEEDED
+#if IS_ENABLED(CONFIG_ARM_DMA_USE_IOMMU)
 	struct dma_iommu_mapping *mapping;
 	int atomic_ctx = 1;
 	int s1_bypass = 1;
@@ -1497,19 +1501,19 @@ set_attr_fail:
 	arm_iommu_release_mapping(mapping);
 map_fail:
 	return ret;
-#endif
 	penv->smmu_mapping = NULL;
+#endif
 	return 0;
 }
 
+#if IS_ENABLED(CONFIG_ARM_DMA_USE_IOMMU)
 static void cnss_smmu_remove(struct device *dev)
 {
-#ifdef CNSS_COMPLIE_ISSUE_FIX_LATER_IFNEEDED
 	arm_iommu_detach_device(dev);
 	arm_iommu_release_mapping(penv->smmu_mapping);
-#endif
 	penv->smmu_mapping = NULL;
 }
+#endif
 
 #ifdef CONFIG_PCI_MSM
 struct pci_saved_state *cnss_pci_store_saved_state(struct pci_dev *dev)
@@ -1763,8 +1767,10 @@ static void cnss_wlan_pci_remove(struct pci_dev *pdev)
 	cnss_pcie_reset_platform_ops(dev);
 	device_remove_file(dev, &dev_attr_wlan_setup);
 
+#if IS_ENABLED(CONFIG_ARM_DMA_USE_IOMMU)
 	if (penv->smmu_mapping)
 		cnss_smmu_remove(&pdev->dev);
+#endif
 }
 
 static int cnss_wlan_pci_suspend(struct device *dev)
@@ -2901,6 +2907,7 @@ static int cnss_init_dump_entry(void)
 	return msm_dump_data_register(MSM_DUMP_TABLE_APPS, &dump_entry);
 }
 
+#if IS_ENABLED(CONFIG_ARM_DMA_USE_IOMMU)
 struct dma_iommu_mapping *cnss_smmu_get_mapping(void)
 {
 	if (!penv) {
@@ -2949,6 +2956,7 @@ int cnss_smmu_map(phys_addr_t paddr, uint32_t *iova_addr, size_t size)
 	return 0;
 }
 EXPORT_SYMBOL(cnss_smmu_map);
+#endif
 
 static int cnss_probe(struct platform_device *pdev)
 {
