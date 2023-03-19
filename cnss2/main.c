@@ -3971,10 +3971,10 @@ static int cnss_misc_init(struct cnss_plat_data *plat_priv)
 		cnss_pr_err("QMI IPC connection call back register failed, err = %d\n",
 			    ret);
 
-	if (plat_priv->device_id == QCA6490_DEVICE_ID &&
+	/*if (plat_priv->device_id == QCA6490_DEVICE_ID &&
 	    cnss_get_host_build_type() == QMI_HOST_BUILD_TYPE_PRIMARY_V01)
 		plat_priv->sram_dump = kcalloc(SRAM_DUMP_SIZE, 1, GFP_KERNEL);
-
+	*/
 	if (of_property_read_bool(plat_priv->plat_dev->dev.of_node,
 				  "qcom,rc-ep-short-channel"))
 		cnss_set_feature_list(plat_priv, CNSS_RC_EP_ULTRASHORT_CHANNEL_V01);
