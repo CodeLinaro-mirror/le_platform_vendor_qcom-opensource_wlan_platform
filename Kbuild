@@ -48,6 +48,10 @@ ifeq ($(CONFIG_CNSS_LOGGER),m)
 KBUILD_CPPFLAGS += -DCONFIG_CNSS_LOGGER
 endif
 
+ifeq ($(CONFIG_FREE_M3_BLOB_MEM),y)
+KBUILD_CPPFLAGS += -DCONFIG_FREE_M3_BLOB_MEM
+endif
+
 obj-$(CONFIG_CNSS2) += cnss2/
 obj-$(CONFIG_CNSS) += cnss/
 obj-$(CONFIG_ICNSS2) += icnss2/
