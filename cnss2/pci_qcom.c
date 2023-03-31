@@ -596,15 +596,14 @@ int cnss_pci_init_smmu(struct cnss_pci_data *pci_priv)
 
 	res = platform_get_resource_byname(plat_priv->plat_dev, IORESOURCE_MEM,
 					   "smmu_iova_ipa");
-	cnss_pr_dbg("qcdbg, smmu_iova_ipa res=%p", res);
-	//if (res) {
-		pci_priv->smmu_iova_ipa_start = 0xb0000000; //res->start;
-		pci_priv->smmu_iova_ipa_current = 0xb0000000; //res->start;
-		pci_priv->smmu_iova_ipa_len = 0x10000;// resource_size(res);
+	if (res) {
+		pci_priv->smmu_iova_ipa_start = res->start;
+		pci_priv->smmu_iova_ipa_current = res->start;
+		pci_priv->smmu_iova_ipa_len = resource_size(res);
 		cnss_pr_dbg("smmu_iova_ipa_start: %pa, smmu_iova_ipa_len: 0x%zx\n",
 			    &pci_priv->smmu_iova_ipa_start,
 			    pci_priv->smmu_iova_ipa_len);
-	//}
+	}
 
 	pci_priv->iommu_geometry = of_property_read_bool(of_node,
 							 "qcom,iommu-geometry");
