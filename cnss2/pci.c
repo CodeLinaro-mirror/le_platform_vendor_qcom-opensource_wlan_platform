@@ -5873,7 +5873,7 @@ static int cnss_pci_register_mhi(struct cnss_pci_data *pci_priv)
 	if (!mhi_ctrl->rddm_size)
 		mhi_ctrl->rddm_size = RAMDUMP_SIZE_DEFAULT;
 	mhi_ctrl->sbl_size = SZ_512K;
-	mhi_ctrl->seg_len = SZ_512K;
+	mhi_ctrl->seg_len = pci_priv->plat_priv->mhi_seg_len;
 	mhi_ctrl->fbc_download = true;
 
 	ret = cnss_get_mhi_soc_info(plat_priv, mhi_ctrl);

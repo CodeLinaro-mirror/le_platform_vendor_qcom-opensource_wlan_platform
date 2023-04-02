@@ -4049,6 +4049,24 @@ static bool cnss_use_fw_path_with_prefix(struct cnss_plat_data *plat_priv)
 				      "qcom,multi-wlan-exchg"));
 }
 
+static void cnss_get_mhi_seg_len(struct cnss_plat_data *plat_priv)
+{
+	struct device *dev = &plat_priv->plat_dev->dev;
+	u32 mhi_seg_len = SZ_512K;
+
+	if (of_property_read_u32(dev->of_node, "mhi,seg-len",
+				 &mhi_seg_len) == 0) {
+		if (mhi_seg_len != SZ_512K &&
+			mhi_seg_len != SZ_256K) {
+			cnss_pr_err("invalid mhi.seg-len, mhi_seg_len 0x%x", mhi_seg_len);
+		}
+	}
+
+	plat_priv->mhi_seg_len = mhi_seg_len;
+
+	cnss_pr_dbg("mhi_seg_len is 0x%x\n", plat_priv->mhi_seg_len);
+}
+
 static const struct platform_device_id cnss_platform_id_table[] = {
 	{ .name = "qca6174", .driver_data = QCA6174_DEVICE_ID, },
 	{ .name = "qca6290", .driver_data = QCA6290_DEVICE_ID, },
@@ -4316,6 +4334,7 @@ static int cnss_probe(struct platform_device *plat_dev)
 	cnss_get_cpr_info(plat_priv);
 	cnss_aop_mbox_init(plat_priv);
 	cnss_init_control_params(plat_priv);
+	cnss_get_mhi_seg_len(plat_priv);
 
 	ret = cnss_get_resources(plat_priv);
 	if (ret)

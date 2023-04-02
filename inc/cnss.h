@@ -117,8 +117,10 @@ enum cnss_runtime_request {
 	CNSS_PM_GET_NORESUME,
 };
 
+#if IS_ENABLED(CONFIG_ARM_DMA_USE_IOMMU)
 struct dma_iommu_mapping *cnss_smmu_get_mapping(void);
 int cnss_smmu_map(phys_addr_t paddr, uint32_t *iova_addr, size_t size);
+#endif
 int cnss_get_fw_image(struct image_desc_info *image_desc_info);
 void cnss_runtime_init(struct device *dev, int auto_delay);
 void cnss_runtime_exit(struct device *dev);
