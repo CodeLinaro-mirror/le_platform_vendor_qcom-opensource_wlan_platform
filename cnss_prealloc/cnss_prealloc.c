@@ -57,6 +57,16 @@ struct cnss_pool {
  */
 
 /* size, min pool reserve, name, memorypool handler, cache handler*/
+#ifdef CONFIG_ARCH_SDXBAAGHA
+static struct cnss_pool cnss_pools[] = {
+        {8 * 1024, 20, "cnss-pool-8k", NULL, NULL},
+        {16 * 1024, 3, "cnss-pool-16k", NULL, NULL},
+        {32 * 1024, 4, "cnss-pool-32k", NULL, NULL},
+        {64 * 1024, 1, "cnss-pool-64k", NULL, NULL},
+        {128 * 1024, 3, "cnss-pool-128k", NULL, NULL},
+};
+
+#else
 static struct cnss_pool cnss_pools[] = {
 	{8 * 1024, 16, "cnss-pool-8k", NULL, NULL},
 	{16 * 1024, 16, "cnss-pool-16k", NULL, NULL},
@@ -64,7 +74,7 @@ static struct cnss_pool cnss_pools[] = {
 	{64 * 1024, 38, "cnss-pool-64k", NULL, NULL},
 	{128 * 1024, 10, "cnss-pool-128k", NULL, NULL},
 };
-
+#endif
 /**
  * cnss_pool_alloc_threshold() - Allocation threshold
  *
@@ -75,7 +85,7 @@ static struct cnss_pool cnss_pools[] = {
  */
 static inline size_t cnss_pool_alloc_threshold(void)
 {
-	return cnss_pools[0].size;
+	return WCNSS_PRE_ALLOC_GET_THRESHOLD;
 }
 
 /**
