@@ -1611,6 +1611,7 @@ EXPORT_SYMBOL(cnss_get_pci_slot);
  */
 static void cnss_pci_dump_bl_sram_mem(struct cnss_pci_data *pci_priv)
 {
+	enum mhi_ee_type ee;
 	u32 mem_addr, val, pbl_log_max_size, sbl_log_max_size;
 	u32 pbl_log_sram_start;
 	u32 pbl_stage, sbl_log_start, sbl_log_size;
@@ -1667,6 +1668,12 @@ static void cnss_pci_dump_bl_sram_mem(struct cnss_pci_data *pci_priv)
 	cnss_pr_dbg("PBL_WLAN_BOOT_CFG: 0x%08x PBL_BOOTSTRAP_STATUS: 0x%08x\n",
 		    pbl_wlan_boot_cfg, pbl_bootstrap_status);
 
+	ee = mhi_get_exec_env(pci_priv->mhi_ctrl);
+	if (CNSS_MHI_IN_MISSION_MODE(ee)) {
+		cnss_pr_dbg("Avoid Dumping PBL log data in Mission mode\n");
+		return;
+	}
+
 	cnss_pr_dbg("Dumping PBL log data\n");
 	for (i = 0; i < pbl_log_max_size; i += sizeof(val)) {
 		mem_addr = pbl_log_sram_start + i;
@@ -1684,6 +1691,12 @@ static void cnss_pci_dump_bl_sram_mem(struct cnss_pci_data *pci_priv)
 		return;
 	}
 
+	ee = mhi_get_exec_env(pci_priv->mhi_ctrl);
+	if (CNSS_MHI_IN_MISSION_MODE(ee)) {
+		cnss_pr_dbg("Avoid Dumping SBL log data in Mission mode\n");
+		return;
+	}
+
 	cnss_pr_dbg("Dumping SBL log data\n");
 	for (i = 0; i < sbl_log_size; i += sizeof(val)) {
 		mem_addr = sbl_log_start + i;
@@ -1693,6 +1706,11 @@ static void cnss_pci_dump_bl_sram_mem(struct cnss_pci_data *pci_priv)
 	}
 }
 
+#ifdef CONFIG_DISABLE_CNSS_SRAM_DUMP
+static void cnss_pci_dump_sram(struct cnss_pci_data *pci_priv)
+{
+}
+#else
 static void cnss_pci_dump_sram(struct cnss_pci_data *pci_priv)
 {
 	struct cnss_plat_data *plat_priv;
@@ -1727,6 +1745,7 @@ static void cnss_pci_dump_sram(struct cnss_pci_data *pci_priv)
 			cond_resched();
 	}
 }
+#endif
 
 static int cnss_pci_handle_mhi_poweron_timeout(struct cnss_pci_data *pci_priv)
 {
@@ -6370,8 +6389,13 @@ static int cnss_pci_register_mhi(struct cnss_pci_data *pci_priv)
 	if (cnss_pci_get_drv_supported(pci_priv))
 		cnss_mhi_controller_set_base(pci_priv, bar_start);
 
+	cnss_get_bwscal_info(plat_priv);
+	cnss_pr_dbg("no_bwscale: %d\n", plat_priv->no_bwscale);
+
 	/* BW scale CB needs to be set after registering MHI per requirement */
-	cnss_mhi_controller_set_bw_scale_cb(pci_priv, cnss_mhi_bw_scale);
+	if (!plat_priv->no_bwscale)
+		cnss_mhi_controller_set_bw_scale_cb(pci_priv,
+						    cnss_mhi_bw_scale);
 
 	ret = cnss_pci_update_fw_name(pci_priv);
 	if (ret)

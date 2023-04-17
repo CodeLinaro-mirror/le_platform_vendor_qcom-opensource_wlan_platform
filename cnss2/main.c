@@ -274,6 +274,12 @@ cnss_get_pld_bus_ops_name(struct cnss_plat_data *plat_priv)
 }
 #endif
 
+void cnss_get_bwscal_info(struct cnss_plat_data *plat_priv)
+{
+	plat_priv->no_bwscale = of_property_read_bool(plat_priv->dev_node,
+						      "qcom,no-bwscale");
+}
+
 static inline int
 cnss_get_rc_num(struct cnss_plat_data *plat_priv)
 {
@@ -3125,8 +3131,9 @@ int cnss_do_host_ramdump(struct cnss_plat_data *plat_priv,
 		[CNSS_HOST_WMI_EVENT_LOG_IDX] = "wmi_event_log_idx",
 		[CNSS_HOST_WMI_RX_EVENT_IDX] = "wmi_rx_event_idx"
 	};
-	int i, j;
+	int i;
 	int ret = 0;
+	enum cnss_host_dump_type j;
 
 	if (!dump_enabled()) {
 		cnss_pr_info("Dump collection is not enabled\n");
@@ -3159,7 +3166,7 @@ int cnss_do_host_ramdump(struct cnss_plat_data *plat_priv,
 		seg->da = (dma_addr_t)ssr_entry[i].buffer_pointer;
 		seg->size = ssr_entry[i].buffer_size;
 
-		for (j = 0; j < ARRAY_SIZE(wlan_str); j++) {
+		for (j = 0; j < CNSS_HOST_DUMP_TYPE_MAX; j++) {
 			if (strncmp(ssr_entry[i].region_name, wlan_str[j],
 				    strlen(wlan_str[j])) == 0) {
 				meta_info.entry[i].type = j;
@@ -4234,6 +4241,19 @@ int cnss_wlan_hw_disable_check(struct cnss_plat_data *plat_priv)
 }
 #endif
 
+#ifdef CONFIG_DISABLE_CNSS_SRAM_DUMP
+static void cnss_sram_dump_init(struct cnss_plat_data *plat_priv)
+{
+}
+#else
+static void cnss_sram_dump_init(struct cnss_plat_data *plat_priv)
+{
+	if (plat_priv->device_id == QCA6490_DEVICE_ID &&
+	    cnss_get_host_build_type() == QMI_HOST_BUILD_TYPE_PRIMARY_V01)
+		plat_priv->sram_dump = kcalloc(SRAM_DUMP_SIZE, 1, GFP_KERNEL);
+}
+#endif
+
 static int cnss_misc_init(struct cnss_plat_data *plat_priv)
 {
 	int ret;
@@ -4277,9 +4297,7 @@ static int cnss_misc_init(struct cnss_plat_data *plat_priv)
 		cnss_pr_err("QMI IPC connection call back register failed, err = %d\n",
 			    ret);
 
-	if (plat_priv->device_id == QCA6490_DEVICE_ID &&
-	    cnss_get_host_build_type() == QMI_HOST_BUILD_TYPE_PRIMARY_V01)
-		plat_priv->sram_dump = kcalloc(SRAM_DUMP_SIZE, 1, GFP_KERNEL);
+	cnss_sram_dump_init(plat_priv);
 
 	if (of_property_read_bool(plat_priv->plat_dev->dev.of_node,
 				  "qcom,rc-ep-short-channel"))
@@ -4287,6 +4305,19 @@ static int cnss_misc_init(struct cnss_plat_data *plat_priv)
 
 	return 0;
 }
+
+#ifdef CONFIG_DISABLE_CNSS_SRAM_DUMP
+static void cnss_sram_dump_deinit(struct cnss_plat_data *plat_priv)
+{
+}
+#else
+static void cnss_sram_dump_deinit(struct cnss_plat_data *plat_priv)
+{
+	if (plat_priv->device_id == QCA6490_DEVICE_ID &&
+	    cnss_get_host_build_type() == QMI_HOST_BUILD_TYPE_PRIMARY_V01)
+		kfree(plat_priv->sram_dump);
+}
+#endif
 
 static void cnss_misc_deinit(struct cnss_plat_data *plat_priv)
 {
@@ -4302,7 +4333,7 @@ static void cnss_misc_deinit(struct cnss_plat_data *plat_priv)
 	del_timer(&plat_priv->fw_boot_timer);
 	wakeup_source_unregister(plat_priv->recovery_ws);
 	cnss_deinit_sol_gpio(plat_priv);
-	kfree(plat_priv->sram_dump);
+	cnss_sram_dump_deinit(plat_priv);
 	kfree(plat_priv->on_chip_pmic_board_ids);
 }
 
