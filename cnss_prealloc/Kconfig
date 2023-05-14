@@ -7,3 +7,11 @@ config WCNSS_MEM_PRE_ALLOC
 	  This feature enable cld wlan driver to use pre allocated memory
 	  for it's internal usage and release it to back to pre allocated pool.
 	  This memory is allocated at the cold boot time.
+
+config WLAN_MEMORY_OPT
+        bool "Enable WLAN memory optimization"
+        depends on WCNSS_MEM_PRE_ALLOC
+        help
+	  If enabled, will reduce the count of prealloc memory buffer pool
+	  and save memory.
+
