@@ -1426,7 +1426,7 @@ static ssize_t wlan_setup_show(struct device *dev,
 	return scnprintf(buf, PAGE_SIZE, "%u\n", penv->revision_id);
 }
 
-static DEVICE_ATTR(wlan_setup, 0644, wlan_setup_show, NULL);
+static DEVICE_ATTR(wlan_setup, 0440, wlan_setup_show, NULL);
 
 static int cnss_wlan_is_codeswap_supported(u16 revision)
 {
