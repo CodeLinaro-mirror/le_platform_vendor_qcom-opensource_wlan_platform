@@ -273,6 +273,7 @@ static struct cnss_data {
 #endif
 	u32 device_id;
 	int fw_image_setup;
+	int recovery_enabled;
 	u32 bmi_test;
 	void *fw_cpu;
 	dma_addr_t fw_dma;
@@ -1994,6 +1995,39 @@ static ssize_t fw_image_setup_store(struct device *dev,
 
 static DEVICE_ATTR(fw_image_setup, 0644, fw_image_setup_show, fw_image_setup_store);
 
+static ssize_t recovery_show(struct device *dev,
+			     struct device_attribute *attr,
+			     char *buf)
+{
+	if (!penv)
+		return -ENODEV;
+
+	return scnprintf(buf, PAGE_SIZE, "%u\n", penv->recovery_enabled);
+}
+
+static ssize_t recovery_store(struct device *dev,
+			      struct device_attribute *attr,
+			      const char *buf, size_t count)
+{
+	unsigned int recovery = 0;
+
+	if (!penv)
+		return -ENODEV;
+
+	if (sscanf(buf, "%du", &recovery) != 1) {
+		pr_err("Invalid recovery sysfs command\n");
+		return -EINVAL;
+	}
+
+	pr_info("recovery_enabled changed from %d to %d\n",
+		penv->recovery_enabled, !!(recovery));
+	penv->recovery_enabled = !!(recovery);
+
+	return count;
+}
+
+static DEVICE_ATTR(recovery, 0644, recovery_show, recovery_store);
+
 void cnss_pci_recovery_work_handler(struct work_struct *recovery)
 {
 	cnss_pci_device_self_recovery();
@@ -2591,6 +2625,11 @@ void cnss_pci_device_crashed(void)
 	if (penv && penv->subsys) {
 		subsys_set_crash_status(penv->subsys, true);
 		subsystem_restart_dev(penv->subsys);
+	} else {
+		if (penv && penv->recovery_enabled)
+			cnss_schedule_recovery_work();
+		else
+			panic("subsys-restart: Resetting the SoC wlan crashed\n");
 	}
 }
 
@@ -3169,8 +3208,18 @@ skip_ramdump:
 		pr_err("cnss: fw_image_setup sys file creation failed\n");
 		goto err_bus_reg;
 	}
+
+	ret = device_create_file(dev, &dev_attr_recovery);
+	if (ret) {
+		pr_err("cnss: recovery sys file creation failed\n");
+		goto err_attr_fw;
+	}
+
 	pr_debug("cnss: Platform driver probed successfully.\n");
 	return ret;
+
+err_attr_fw:
+	device_remove_file(&pdev->dev, &dev_attr_fw_image_setup);
 
 err_bus_reg:
 #ifdef CNSS_COMPLIE_ISSUE_FIX_LATER_IFNEEDED
@@ -3223,6 +3272,7 @@ err_get_wlan_res:
 static int cnss_remove(struct platform_device *pdev)
 {
 	unregister_pm_notifier(&cnss_pm_notifier);
+	device_remove_file(&pdev->dev, &dev_attr_recovery);
 	device_remove_file(&pdev->dev, &dev_attr_fw_image_setup);
 
 	cnss_pm_wake_lock_destroy(penv->ws);
