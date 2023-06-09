@@ -57,24 +57,15 @@ struct cnss_pool {
  */
 
 /* size, min pool reserve, name, memorypool handler, cache handler*/
-#ifdef CONFIG_ARCH_SDXBAAGHA
+#ifdef  CONFIG_WLAN_MEMORY_OPT
 static struct cnss_pool cnss_pools[] = {
-        {8 * 1024, 20, "cnss-pool-8k", NULL, NULL},
-        {16 * 1024, 3, "cnss-pool-16k", NULL, NULL},
+        {8 * 1024, 12, "cnss-pool-8k", NULL, NULL},
+        {16 * 1024, 4, "cnss-pool-16k", NULL, NULL},
         {32 * 1024, 4, "cnss-pool-32k", NULL, NULL},
         {64 * 1024, 1, "cnss-pool-64k", NULL, NULL},
         {128 * 1024, 3, "cnss-pool-128k", NULL, NULL},
 };
 
-#else
-static struct cnss_pool cnss_pools[] = {
-	{8 * 1024, 16, "cnss-pool-8k", NULL, NULL},
-	{16 * 1024, 16, "cnss-pool-16k", NULL, NULL},
-	{32 * 1024, 22, "cnss-pool-32k", NULL, NULL},
-	{64 * 1024, 38, "cnss-pool-64k", NULL, NULL},
-	{128 * 1024, 10, "cnss-pool-128k", NULL, NULL},
-};
-#endif
 /**
  * cnss_pool_alloc_threshold() - Allocation threshold
  *
@@ -87,6 +78,21 @@ static inline size_t cnss_pool_alloc_threshold(void)
 {
 	return WCNSS_PRE_ALLOC_GET_THRESHOLD;
 }
+
+#else
+static struct cnss_pool cnss_pools[] = {
+	{8 * 1024, 16, "cnss-pool-8k", NULL, NULL},
+	{16 * 1024, 16, "cnss-pool-16k", NULL, NULL},
+	{32 * 1024, 22, "cnss-pool-32k", NULL, NULL},
+	{64 * 1024, 38, "cnss-pool-64k", NULL, NULL},
+	{128 * 1024, 10, "cnss-pool-128k", NULL, NULL},
+};
+
+static inline size_t cnss_pool_alloc_threshold(void)
+{
+	return cnss_pools[0].size;
+}
+#endif
 
 /**
  * cnss_pool_int() - Initialize memory pools.

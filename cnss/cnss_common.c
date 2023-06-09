@@ -14,6 +14,7 @@
 #include <linux/suspend.h>
 #include <linux/mutex.h>
 #include <linux/rwsem.h>
+#include <linux/version.h>
 #ifdef CONFIG_CNSS_OUT_OF_TREE
 #include "cnss.h"
 #else
@@ -247,12 +248,33 @@ EXPORT_SYMBOL(cnss_set_cpus_allowed_ptr);
  * function directly, so to invoke this function it
  * call wcnss_dump_stack function
  */
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 2, 0))
+#define ENTRIES_COUNT 32
+void cnss_dump_stack(struct task_struct *task)
+{
+	const int cnss_spaces = 4;
+	unsigned long cnss_entries[ENTRIES_COUNT] = {0};
+	struct stack_trace cnss_trace = {
+		.nr_entries = 0,
+		.skip = 0,
+		.entries = &cnss_entries[0],
+		.max_entries = ENTRIES_COUNT,
+	};
+
+	save_stack_trace_tsk(task, &cnss_trace);
+	stack_trace_print(cnss_entries, cnss_trace.nr_entries,
+			  cnss_spaces);
+}
+#else
 void cnss_dump_stack(struct task_struct *task)
 {
 	/* TODO
 	 * show_stack(task, NULL, KERN_DEFAULT);
 	 */
 }
+#endif
+
 EXPORT_SYMBOL(cnss_dump_stack);
 
 struct cnss_dev_platform_ops *cnss_get_platform_ops(struct device *dev)
