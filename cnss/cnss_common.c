@@ -269,9 +269,7 @@ void cnss_dump_stack(struct task_struct *task)
 #else
 void cnss_dump_stack(struct task_struct *task)
 {
-	/* TODO
-	 * show_stack(task, NULL, KERN_DEFAULT);
-	 */
+	show_stack(task, NULL, KERN_DEFAULT);
 }
 #endif
 
