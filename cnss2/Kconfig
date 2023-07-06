@@ -118,3 +118,15 @@ config DISABLE_CNSS_SRAM_DUMP
 	  If enabled, CNSS plafrom driver will not dump sram when MHI power on
 	  timeout for CNSS QCA6490 chipset only. Since this feature about
 	  sram dump costs 4M memory.
+
+config CNSS_SHUTDOWN_CALLBACK
+	bool "Enable/Disable shutdown callback in CNSS side"
+	depends on CNSS2
+	depends on PCI
+	select PCIE_SHUTDOWN_CALLBACK
+	help
+	  If enabled, CNSS platform driver will register shutdown callback to
+	  platform. Once platform reboot or shutdown, this callback will be
+	  called and then cnss_remove be called. If target or system disabled
+	  IOMMU during shutdown and PCIe required this feature, then enabled
+	  it.
