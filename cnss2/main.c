@@ -4455,7 +4455,7 @@ static int cnss_remove(struct platform_device *plat_dev)
 	cnss_misc_deinit(plat_priv);
 	cnss_debugfs_destroy(plat_priv);
 	cnss_dms_deinit(plat_priv);
-	cnss_qmi_deinit(plat_priv);
+	cnss_wlfw_server_exit(plat_priv);
 	cnss_event_work_deinit(plat_priv);
 	cnss_cancel_dms_work();
 	cnss_remove_sysfs(plat_priv);
@@ -4472,9 +4472,21 @@ static int cnss_remove(struct platform_device *plat_dev)
 	return 0;
 }
 
+#ifdef CONFIG_CNSS_SHUTDOWN_CALLBACK
+static void cnss_shutdown(struct platform_device *plat_dev)
+{
+	cnss_remove(plat_dev);
+}
+#else
+static inline void cnss_shutdown(struct platform_device *plat_dev)
+{
+}
+#endif
+
 static struct platform_driver cnss_platform_driver = {
 	.probe  = cnss_probe,
 	.remove = cnss_remove,
+	.shutdown = cnss_shutdown,
 	.driver = {
 		.name = "cnss2",
 		.of_match_table = cnss_of_match_table,

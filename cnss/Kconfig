@@ -132,3 +132,15 @@ config WLAN_FEATURE_RX_WAKELOCK
 	help
 	Enable WLAN_FEATURE_HOLD_RX_WAKELOCK which is required to take rx
 	wakelock when driver receives packets from fw.
+
+config CNSS_SHUTDOWN_CALLBACK
+	bool "Enable/Disable shutdown callback in CNSS side"
+	depends on CNSS
+	depends on PCI
+	select PCIE_SHUTDOWN_CALLBACK
+	help
+	  If enabled, CNSS platform driver will register shutdown callback to
+	  platform. Once platform reboot or shutdown, this callback will be
+	  called and then cnss_remove be called. If target or system disabled
+	  IOMMU during shutdown and PCIe required this feature, then enabled
+	  it.
