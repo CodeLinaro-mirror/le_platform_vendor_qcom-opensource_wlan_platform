@@ -126,6 +126,64 @@ static const struct mhi_channel_config cnss_mhi_channels[] = {
 		.doorbell_mode_switch = false,
 		.auto_queue = false,
 	},
+#ifdef CONFIG_WLAN_MEMORY_OPT
+	{
+		.num = 4,
+		.name = "DIAG",
+		.num_elements = 32,
+		.event_ring = 1,
+		.dir = DMA_TO_DEVICE,
+		.ee_mask = 0x4,
+		.pollcfg = 0,
+		.doorbell = MHI_DB_BRST_DISABLE,
+		.lpm_notify = false,
+		.offload_channel = false,
+		.doorbell_mode_switch = false,
+		.auto_queue = false,
+	},
+	{
+		.num = 5,
+		.name = "DIAG",
+		.num_elements = 32,
+		.event_ring = 1,
+		.dir = DMA_FROM_DEVICE,
+		.ee_mask = 0x4,
+		.pollcfg = 0,
+		.doorbell = MHI_DB_BRST_DISABLE,
+		.lpm_notify = false,
+		.offload_channel = false,
+		.doorbell_mode_switch = false,
+		.auto_queue = false,
+	},
+	{
+		.num = 20,
+		.name = "IPCR",
+		.num_elements = 32,
+		.event_ring = 1,
+		.dir = DMA_TO_DEVICE,
+		.ee_mask = 0x4,
+		.pollcfg = 0,
+		.doorbell = MHI_DB_BRST_DISABLE,
+		.lpm_notify = false,
+		.offload_channel = false,
+		.doorbell_mode_switch = false,
+		.auto_queue = false,
+	},
+	{
+		.num = 21,
+		.name = "IPCR",
+		.num_elements = 32,
+		.event_ring = 1,
+		.dir = DMA_FROM_DEVICE,
+		.ee_mask = 0x4,
+		.pollcfg = 0,
+		.doorbell = MHI_DB_BRST_DISABLE,
+		.lpm_notify = false,
+		.offload_channel = false,
+		.doorbell_mode_switch = false,
+		.auto_queue = true,
+	},
+#else
 	{
 		.num = 4,
 		.name = "DIAG",
@@ -182,6 +240,7 @@ static const struct mhi_channel_config cnss_mhi_channels[] = {
 		.doorbell_mode_switch = false,
 		.auto_queue = true,
 	},
+#endif /* end of CONFIG_WLAN_MEMORY_OPT */
 /* All MHI satellite config to be at the end of data struct */
 #if IS_ENABLED(CONFIG_MHI_SATELLITE)
 	{
@@ -308,6 +367,8 @@ static const struct mhi_event_config cnss_mhi_events[] = {
 static const struct mhi_controller_config cnss_mhi_config_default = {
 #if IS_ENABLED(CONFIG_MHI_SATELLITE)
 	.max_channels = 72,
+#elif defined(CONFIG_WLAN_MEMORY_OPT)
+	.max_channels = 22,
 #else
 	.max_channels = 32,
 #endif
