@@ -3304,6 +3304,11 @@ static int cnss_remove(struct platform_device *pdev)
 #ifdef CONFIG_CNSS_SHUTDOWN_CALLBACK
 static void cnss_shutdown_cb(struct platform_device *pdev)
 {
+	if (penv->pdev) {
+		pr_err("%s: Unregistering PCI device\n", __func__);
+		pci_unregister_driver(&cnss_wlan_pci_driver);
+		penv->pdev = NULL;
+	}
 	cnss_remove(pdev);
 }
 #else
