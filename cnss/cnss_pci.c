@@ -3301,6 +3301,16 @@ static int cnss_remove(struct platform_device *pdev)
 	return 0;
 }
 
+#ifdef CONFIG_CNSS_SHUTDOWN_CALLBACK
+static void cnss_shutdown_cb(struct platform_device *pdev)
+{
+	cnss_remove(pdev);
+}
+#else
+static inline void cnss_shutdown_cb(struct platform_device *pdev)
+{
+}
+#endif
 static const struct of_device_id cnss_dt_match[] = {
 	{.compatible = "qcom,cnss"},
 	{}
@@ -3311,6 +3321,7 @@ MODULE_DEVICE_TABLE(of, cnss_dt_match);
 static struct platform_driver cnss_driver = {
 	.probe  = cnss_probe,
 	.remove = cnss_remove,
+	.shutdown = cnss_shutdown_cb,
 	.driver = {
 		.name = "cnss",
 		.of_match_table = cnss_dt_match,
