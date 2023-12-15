@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-only
 /*
  * Copyright (c) 2016-2021, The Linux Foundation. All rights reserved.
- * Copyright (c) 2021-2023 Qualcomm Innovation Center, Inc. All rights reserved.
+ * Copyright (c) 2021-2024 Qualcomm Innovation Center, Inc. All rights reserved.
  */
 
 #include <linux/completion.h>
@@ -6633,6 +6633,34 @@ static void cnss_mhi_write_reg(struct mhi_controller *mhi_ctrl,
 			       void __iomem *addr, u32 val)
 {
 	writel_relaxed(val, addr);
+}
+
+static int
+cnss_get_mhi_soc_info(struct cnss_plat_data *plat_priv,
+		      struct mhi_controller *mhi_ctrl)
+{
+	int ret = 0;
+
+	ret = cnss_mhi_get_soc_info(mhi_ctrl);
+	if (ret)
+		goto exit;
+
+	plat_priv->device_version.family_number = mhi_ctrl->family_number;
+	plat_priv->device_version.device_number = mhi_ctrl->device_number;
+	plat_priv->device_version.major_version = mhi_ctrl->major_version;
+	plat_priv->device_version.minor_version = mhi_ctrl->minor_version;
+
+	cnss_pr_dbg("Get device version info, family number: 0x%x, device number: 0x%x, major version: 0x%x, minor version: 0x%x\n",
+		    plat_priv->device_version.family_number,
+		    plat_priv->device_version.device_number,
+		    plat_priv->device_version.major_version,
+		    plat_priv->device_version.minor_version);
+
+	/* Only keep lower 4 bits as real device major version */
+	plat_priv->device_version.major_version &= DEVICE_MAJOR_VERSION_MASK;
+
+exit:
+	return ret;
 }
 
 static int cnss_pci_register_mhi(struct cnss_pci_data *pci_priv)
