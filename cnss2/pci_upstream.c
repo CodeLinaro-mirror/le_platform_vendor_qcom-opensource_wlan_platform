@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-2.0-only
-/* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved. */
+/* Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved. */
 
 #include "pci_platform.h"
 #include "debug.h"
@@ -315,28 +315,10 @@ void cnss_mhi_report_error(struct cnss_pci_data *pci_priv)
 	cnss_pr_dbg("Not supported yet");
 }
 
-void cnss_pci_set_tme_support(struct mhi_controller *mhi_ctrl, struct cnss_pci_data *pci_priv)
+void cnss_pci_set_tme_support(struct mhi_controller *mhi_ctrl,
+			      struct cnss_pci_data *pci_priv)
 {
 	cnss_pr_dbg("Not supported yet");
-}
-
-int cnss_get_mhi_soc_info(struct cnss_plat_data *plat_priv,
-			  struct mhi_controller *mhi_ctrl)
-{
-	int ret = 0;
-
-	plat_priv->device_version.family_number = 0x4;
-	plat_priv->device_version.device_number = 0x17;
-	plat_priv->device_version.major_version = 0x2;
-	plat_priv->device_version.minor_version = 0x0;
-
-	cnss_pr_dbg("Get device version info, family number: 0x%x, device number: 0x%x, major version: 0x%x, minor version: 0x%x\n",
-		    plat_priv->device_version.family_number,
-		    plat_priv->device_version.device_number,
-		    plat_priv->device_version.major_version,
-		    plat_priv->device_version.minor_version);
-
-	return ret;
 }
 
 bool cnss_pci_is_sync_probe(void)
@@ -347,4 +329,38 @@ bool cnss_pci_is_sync_probe(void)
 bool cnss_should_suspend_pwroff(struct pci_dev *pci_dev)
 {
 	return false;
+}
+
+#define SOC_HW_VERSION_OFFS (0x224)
+#define SOC_HW_VERSION_FAM_NUM_BMSK (0xF0000000)
+#define SOC_HW_VERSION_FAM_NUM_SHFT (28)
+#define SOC_HW_VERSION_DEV_NUM_BMSK (0x0FFF0000)
+#define SOC_HW_VERSION_DEV_NUM_SHFT (16)
+#define SOC_HW_VERSION_MAJOR_VER_BMSK (0x0000FF00)
+#define SOC_HW_VERSION_MAJOR_VER_SHFT (8)
+#define SOC_HW_VERSION_MINOR_VER_BMSK (0x000000FF)
+#define SOC_HW_VERSION_MINOR_VER_SHFT (0)
+
+int cnss_mhi_get_soc_info(struct mhi_controller *mhi_ctrl)
+{
+	u32 soc_info;
+	int ret;
+
+	ret = mhi_ctrl->read_reg(mhi_ctrl,
+				 mhi_ctrl->regs + SOC_HW_VERSION_OFFS,
+				 &soc_info);
+	if (ret) {
+		cnss_pr_err("failed to get soc info, ret %d\n", ret);
+		return ret;
+	}
+
+	mhi_ctrl->family_number = (soc_info & SOC_HW_VERSION_FAM_NUM_BMSK) >>
+		SOC_HW_VERSION_FAM_NUM_SHFT;
+	mhi_ctrl->device_number = (soc_info & SOC_HW_VERSION_DEV_NUM_BMSK) >>
+		SOC_HW_VERSION_DEV_NUM_SHFT;
+	mhi_ctrl->major_version = (soc_info & SOC_HW_VERSION_MAJOR_VER_BMSK) >>
+		SOC_HW_VERSION_MAJOR_VER_SHFT;
+	mhi_ctrl->minor_version = (soc_info & SOC_HW_VERSION_MINOR_VER_BMSK) >>
+		SOC_HW_VERSION_MINOR_VER_SHFT;
+	return 0;
 }

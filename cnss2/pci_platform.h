@@ -1,5 +1,5 @@
 /* SPDX-License-Identifier: GPL-2.0-only */
-/* Copyright (c) 2022-2023 Qualcomm Innovation Center, Inc. All rights reserved. */
+/* Copyright (c) 2022-2024 Qualcomm Innovation Center, Inc. All rights reserved. */
 
 #ifndef _CNSS_PCI_PLATFORM_H
 #define _CNSS_PCI_PLATFORM_H
@@ -140,9 +140,16 @@ void cnss_pci_wake_gpio_deinit(struct cnss_pci_data *pci_priv);
 
 void cnss_mhi_report_error(struct cnss_pci_data *pci_priv);
 
-void cnss_pci_set_tme_support(struct mhi_controller *mhi_ctrl, struct cnss_pci_data *pci_priv);
-int cnss_get_mhi_soc_info(struct cnss_plat_data *plat_priv,
-			  struct mhi_controller *mhi_ctrl);
+void cnss_pci_set_tme_support(struct mhi_controller *mhi_ctrl,
+			      struct cnss_pci_data *pci_priv);
 bool cnss_pci_is_sync_probe(void);
 bool cnss_should_suspend_pwroff(struct pci_dev *pci_dev);
+
+/**
+ * cnss_mhi_get_soc_info - Get SoC info before registering mhi controller
+ * @mhi_ctrl: MHI controller
+ *
+ * Return: 0 for success, error code on failure
+ */
+int cnss_mhi_get_soc_info(struct mhi_controller *mhi_ctrl);
 #endif /* _CNSS_PCI_PLATFORM_H*/
