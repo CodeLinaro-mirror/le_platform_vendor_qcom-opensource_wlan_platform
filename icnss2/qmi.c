@@ -62,6 +62,7 @@
 #define MAX_SHADOW_REG_RESERVED		2
 #define MAX_NUM_SHADOW_REG_V3		(QMI_WLFW_MAX_NUM_SHADOW_REG_V3_USAGE_V01 - \
 					MAX_SHADOW_REG_RESERVED)
+#define MAX_XTAL_TRIM_VALUE 0x3F
 
 #ifdef CONFIG_ICNSS2_DEBUG
 bool ignore_fw_timeout;
@@ -1457,6 +1458,7 @@ int wlfw_wlan_mode_send_sync_msg(struct icnss_priv *priv,
 	struct wlfw_wlan_mode_req_msg_v01 *req;
 	struct wlfw_wlan_mode_resp_msg_v01 *resp;
 	struct qmi_txn txn;
+	uint32_t capin;
 
 	if (!priv)
 		return -ENODEV;
@@ -1488,6 +1490,17 @@ int wlfw_wlan_mode_send_sync_msg(struct icnss_priv *priv,
 	req->mode = mode;
 	req->hw_debug_valid = 1;
 	req->hw_debug = !!test_bit(HW_DEBUG_ENABLE, &priv->ctrl_params.quirks);
+
+	if (of_property_read_u32(priv->pdev->dev.of_node, "qcom,capin",
+				 &capin) == 0) {
+		if (capin <= MAX_XTAL_TRIM_VALUE) {
+			req->xo_cal_data = capin;
+			req->xo_cal_data_valid = 1;
+		} else {
+			icnss_pr_err("xo cal data value higher than max value %x, %x",
+				     capin, MAX_XTAL_TRIM_VALUE);
+		}
+	}
 
 	if (priv->wlan_en_delay_ms >= 100) {
 		icnss_pr_dbg("Setting WLAN_EN delay: %d ms\n",
