@@ -4226,9 +4226,17 @@ int cnss_pci_alloc_fw_mem(struct cnss_pci_data *pci_priv)
 	struct cnss_fw_mem *fw_mem = plat_priv->fw_mem;
 	struct device *dev = &pci_priv->pci_dev->dev;
 	int i;
+	struct image_info *rddm_image = pci_priv->mhi_ctrl->rddm_image;
+	size_t caldb_len = 0, seg_total = 0;
 
 	for (i = 0; i < plat_priv->fw_mem_seg_len; i++) {
 		if (!fw_mem[i].va && fw_mem[i].size) {
+			if (cnss_is_caldb_seg_enable(plat_priv) &&
+			    fw_mem[i].type == QMI_WLFW_MEM_CALDB_SEG_V01 &&
+			    i == plat_priv->fw_mem_seg_len - 1) {
+				caldb_len = fw_mem[i].size;
+				break;
+			}
 retry:
 			fw_mem[i].va =
 				dma_alloc_attrs(dev, fw_mem[i].size,
@@ -4253,6 +4261,27 @@ retry:
 		}
 	}
 
+	if (caldb_len && rddm_image->entries) {
+		/* skip last block which has RDDM vector */
+		for (i = 0; i < rddm_image->entries - 1; i++) {
+			/* RDDM buffer re-allocate, clear dirty buffer */
+			memset(rddm_image->mhi_buf[i].buf, 0, rddm_image->mhi_buf[i].len);
+			fw_mem[plat_priv->fw_mem_seg_len - 1 + i].va = rddm_image->mhi_buf[i].buf;
+			fw_mem[plat_priv->fw_mem_seg_len - 1 + i].pa = rddm_image->mhi_buf[i].dma_addr;
+			fw_mem[plat_priv->fw_mem_seg_len - 1 + i].size = rddm_image->mhi_buf[i].len;
+			fw_mem[plat_priv->fw_mem_seg_len - 1 + i].type = QMI_WLFW_MEM_CALDB_SEG_V01;
+			seg_total += rddm_image->mhi_buf[i].len;
+		}
+		plat_priv->fw_mem_seg_len += rddm_image->entries - 2;
+
+		if (seg_total < caldb_len) {
+			cnss_pr_err("segment total len 0x%zx smaller than request len 0x%zx\n",
+				     seg_total, caldb_len);
+			CNSS_ASSERT(0);
+			return -ENOMEM;
+		}
+	}
+
 	return 0;
 }
 
@@ -4265,12 +4294,15 @@ static void cnss_pci_free_fw_mem(struct cnss_pci_data *pci_priv)
 
 	for (i = 0; i < plat_priv->fw_mem_seg_len; i++) {
 		if (fw_mem[i].va && fw_mem[i].size) {
-			cnss_pr_dbg("Freeing memory for FW, va: 0x%pK, pa: %pa, size: 0x%zx, type: %u\n",
-				    fw_mem[i].va, &fw_mem[i].pa,
-				    fw_mem[i].size, fw_mem[i].type);
-			dma_free_attrs(dev, fw_mem[i].size,
-				       fw_mem[i].va, fw_mem[i].pa,
-				       fw_mem[i].attrs);
+			if (!cnss_is_caldb_seg_enable(plat_priv) ||
+			    fw_mem[i].type != QMI_WLFW_MEM_CALDB_SEG_V01) {
+				cnss_pr_dbg("Freeing memory for FW, va: 0x%p, pa: %pa, size: 0x%zx, type: %u\n",
+					    fw_mem[i].va, &fw_mem[i].pa,
+					    fw_mem[i].size, fw_mem[i].type);
+				dma_free_attrs(dev, fw_mem[i].size,
+					       fw_mem[i].va, fw_mem[i].pa,
+					       fw_mem[i].attrs);
+			}
 			fw_mem[i].va = NULL;
 			fw_mem[i].pa = 0;
 			fw_mem[i].size = 0;

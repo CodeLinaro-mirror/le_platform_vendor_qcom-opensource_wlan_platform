@@ -2483,7 +2483,8 @@ static void cnss_wlfw_request_mem_ind_cb(struct qmi_handle *qmi_wlfw,
 	struct cnss_plat_data *plat_priv =
 		container_of(qmi_wlfw, struct cnss_plat_data, qmi_wlfw);
 	const struct wlfw_request_mem_ind_msg_v01 *ind_msg = data;
-	int i;
+	int i, j;
+	size_t caldb_len = 0;
 
 	cnss_pr_dbg("Received QMI WLFW request memory indication\n");
 
@@ -2498,17 +2499,37 @@ static void cnss_wlfw_request_mem_ind_cb(struct qmi_handle *qmi_wlfw,
 	}
 
 	plat_priv->fw_mem_seg_len = ind_msg->mem_seg_len;
-	for (i = 0; i < plat_priv->fw_mem_seg_len; i++) {
+	for (i = 0, j = 0; i < plat_priv->fw_mem_seg_len; i++) {
 		cnss_pr_dbg("FW requests for memory, size: 0x%x, type: %u\n",
 			    ind_msg->mem_seg[i].size, ind_msg->mem_seg[i].type);
-		plat_priv->fw_mem[i].type = ind_msg->mem_seg[i].type;
-		plat_priv->fw_mem[i].size = ind_msg->mem_seg[i].size;
-		if (!plat_priv->fw_mem[i].va &&
-		    plat_priv->fw_mem[i].type == CNSS_MEM_TYPE_DDR)
-			plat_priv->fw_mem[i].attrs |=
+
+		if (cnss_is_caldb_seg_enable(plat_priv) &&
+		    ind_msg->mem_seg[i].type == QMI_WLFW_MEM_CALDB_SEG_V01) {
+			if (caldb_len) {
+				cnss_pr_err("Duplicated request CALDB SEG MEM\n");
+				CNSS_ASSERT(0);
+				return;
+			}
+			caldb_len = ind_msg->mem_seg[i].size;
+			continue;
+		}
+
+		plat_priv->fw_mem[j].type = ind_msg->mem_seg[i].type;
+		plat_priv->fw_mem[j].size = ind_msg->mem_seg[i].size;
+		if (!plat_priv->fw_mem[j].va &&
+		    plat_priv->fw_mem[j].type == CNSS_MEM_TYPE_DDR)
+			plat_priv->fw_mem[j].attrs |=
 				DMA_ATTR_FORCE_CONTIGUOUS;
-		if (plat_priv->fw_mem[i].type == CNSS_MEM_CAL_V01)
-			plat_priv->cal_mem = &plat_priv->fw_mem[i];
+		if (plat_priv->fw_mem[j].type == CNSS_MEM_CAL_V01)
+			plat_priv->cal_mem = &plat_priv->fw_mem[j];
+		j++;
+	}
+
+	if (caldb_len) {
+		plat_priv->fw_mem[j].type = QMI_WLFW_MEM_CALDB_SEG_V01;
+		plat_priv->fw_mem[j].size = caldb_len;
+		/* CALDB SEG MEM (RDDM buffer) re-allocate */
+		plat_priv->fw_mem[j].va = NULL;
 	}
 
 	cnss_driver_event_post(plat_priv, CNSS_DRIVER_EVENT_REQUEST_MEM,
