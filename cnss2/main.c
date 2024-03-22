@@ -699,7 +699,8 @@ int cnss_wlan_disable(struct device *dev, enum cnss_driver_mode mode)
 }
 EXPORT_SYMBOL(cnss_wlan_disable);
 
-#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0))
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0)) && \
+	(LINUX_VERSION_CODE > KERNEL_VERSION(5, 14, 0))
 int cnss_iommu_map(struct iommu_domain *domain,
 		   unsigned long iova, phys_addr_t paddr, size_t size, int prot)
 {
@@ -4503,7 +4504,8 @@ out:
 	return ret;
 }
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0)) || \
+	(LINUX_VERSION_CODE == KERNEL_VERSION(5, 14, 0))
 union cnss_device_group_devres {
 	const struct attribute_group *group;
 };
