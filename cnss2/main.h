@@ -572,6 +572,7 @@ struct cnss_plat_data {
 	enum cnss_driver_mode driver_mode;
 	uint32_t num_shadow_regs_v3;
 	bool sec_peri_feature_disable;
+	bool enable_caldb_seg;
 	struct device_node *dev_node;
 };
 
@@ -649,6 +650,7 @@ int cnss_enable_int_pow_amp_vreg(struct cnss_plat_data *plat_priv);
 int cnss_get_tcs_info(struct cnss_plat_data *plat_priv);
 unsigned int cnss_get_timeout(struct cnss_plat_data *plat_priv,
 			      enum cnss_timeout_type);
+void cnss_get_caldb_seg(struct cnss_plat_data *plat_priv);
 int cnss_aop_mbox_init(struct cnss_plat_data *plat_priv);
 int cnss_aop_pdc_reconfig(struct cnss_plat_data *plat_priv);
 int cnss_aop_send_msg(struct cnss_plat_data *plat_priv, char *msg);

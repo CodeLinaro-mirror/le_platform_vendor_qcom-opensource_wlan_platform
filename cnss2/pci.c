@@ -6303,6 +6303,8 @@ static int cnss_pci_probe(struct pci_dev *pci_dev,
 		goto reset_ctx;
 	}
 
+	cnss_get_caldb_seg(plat_priv);
+
 	ret = cnss_dev_specific_power_on(plat_priv);
 	if (ret)
 		goto reset_ctx;
