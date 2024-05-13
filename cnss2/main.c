@@ -127,6 +127,12 @@ struct cnss_plat_data *cnss_get_plat_priv(struct platform_device *plat_dev)
 	return plat_env;
 }
 
+bool cnss_is_caldb_seg_enable(struct cnss_plat_data *plat_priv)
+{
+	//TODO: get enable flag from DTS
+	return true;
+}
+
 /**
  * cnss_get_mem_seg_count - Get segment count of memory
  * @type: memory type
