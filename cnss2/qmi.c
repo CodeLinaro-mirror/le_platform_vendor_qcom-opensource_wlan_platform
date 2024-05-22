@@ -190,6 +190,8 @@ static int cnss_wlfw_ind_register_send_sync(struct cnss_plat_data *plat_priv)
 	req->respond_get_info_enable = 1;
 	req->wfc_call_twt_config_enable_valid = 1;
 	req->wfc_call_twt_config_enable = 1;
+	req->async_data_enable_valid = 1;
+	req->async_data_enable = 1;
 
 	ret = qmi_txn_init(&plat_priv->qmi_wlfw, &txn,
 			   wlfw_ind_register_resp_msg_v01_ei, resp);
@@ -649,6 +651,13 @@ int cnss_wlfw_tgt_cap_send_sync(struct cnss_plat_data *plat_priv)
 		}
 	}
 
+	if (resp->serial_id_valid) {
+		plat_priv->serial_id = resp->serial_id;
+		cnss_pr_info("serial id  0x%x 0x%x\n",
+			     resp->serial_id.serial_id_msb,
+			     resp->serial_id.serial_id_lsb);
+	}
+
 	cnss_pr_dbg("Target capability: chip_id: 0x%x, chip_family: 0x%x, board_id: 0x%x, soc_id: 0x%x, otp_version: 0x%x\n",
 		    plat_priv->chip_info.chip_id,
 		    plat_priv->chip_info.chip_family,
@@ -1023,7 +1032,8 @@ int cnss_wlfw_tme_opt_file_dnld_send_sync(struct cnss_plat_data *plat_priv,
 		file_name = TME_DPR_FILE_NAME;
 	}
 
-	if (!tme_opt_file_mem->pa || !tme_opt_file_mem->size) {
+	if (!tme_opt_file_mem || !tme_opt_file_mem->pa ||
+	    !tme_opt_file_mem->size) {
 		cnss_pr_err("Memory for TME opt file is not available\n");
 		ret = -ENOMEM;
 		goto out;
@@ -3100,6 +3110,33 @@ static void cnss_wlfw_respond_get_info_ind_cb(struct qmi_handle *qmi_wlfw,
 				       ind_msg->data_len);
 }
 
+static void cnss_wlfw_driver_async_data_ind_cb(struct qmi_handle *qmi_wlfw,
+					       struct sockaddr_qrtr *sq,
+					       struct qmi_txn *txn,
+					       const void *data)
+{
+	struct cnss_plat_data *plat_priv =
+		container_of(qmi_wlfw, struct cnss_plat_data, qmi_wlfw);
+	const struct wlfw_driver_async_data_ind_msg_v01 *ind_msg = data;
+
+	cnss_pr_buf("Received QMI WLFW driver async data indication\n");
+
+	if (!txn) {
+		cnss_pr_err("Spurious indication\n");
+		return;
+	}
+
+	cnss_pr_buf("Extract message with event length: %d, type: %d\n",
+		    ind_msg->data_len, ind_msg->type);
+
+	if (plat_priv->get_driver_async_data_ctx &&
+			plat_priv->get_driver_async_data_cb)
+		plat_priv->get_driver_async_data_cb(
+			plat_priv->get_driver_async_data_ctx, ind_msg->type,
+			(void *)ind_msg->data, ind_msg->data_len);
+}
+
+
 static int cnss_ims_wfc_call_twt_cfg_send_sync
 	(struct cnss_plat_data *plat_priv,
 	 const struct wlfw_wfc_call_twt_config_ind_msg_v01 *ind_msg)
@@ -3310,6 +3347,14 @@ static struct qmi_msg_handler qmi_wlfw_msg_handlers[] = {
 		.decoded_size =
 		sizeof(struct wlfw_wfc_call_twt_config_ind_msg_v01),
 		.fn = cnss_wlfw_process_twt_cfg_ind
+	},
+	{
+		.type = QMI_INDICATION,
+		.msg_id = QMI_WLFW_DRIVER_ASYNC_DATA_IND_V01,
+		.ei = wlfw_driver_async_data_ind_msg_v01_ei,
+		.decoded_size =
+		sizeof(struct wlfw_driver_async_data_ind_msg_v01),
+		.fn = cnss_wlfw_driver_async_data_ind_cb
 	},
 	{}
 };
