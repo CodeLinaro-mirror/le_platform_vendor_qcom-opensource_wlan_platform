@@ -2870,6 +2870,7 @@ fail_out_of_minors:
 	return ERR_PTR(ret);
 }
 
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0))
 static int icnss_register_ramdump_devices(struct icnss_priv *priv)
 {
 	int ret = 0;
@@ -2945,6 +2946,12 @@ static int icnss_register_ramdump_devices(struct icnss_priv *priv)
 
 	return 0;
 }
+#else
+static int icnss_register_ramdump_devices(struct icnss_priv *priv)
+{
+	return 0;
+}
+#endif
 
 static int icnss_enable_recovery(struct icnss_priv *priv)
 {
