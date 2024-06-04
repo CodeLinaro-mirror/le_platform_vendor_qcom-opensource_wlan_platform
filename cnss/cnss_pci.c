@@ -292,6 +292,7 @@ static struct cnss_data {
 	bool monitor_wake_intr;
 	struct cnss_dual_wifi dual_wifi_info;
 	struct cnss_dev_platform_ops platform_ops;
+	u8 disable_pc;
 } *penv;
 
 static unsigned int pcie_link_down_panic;
@@ -1785,21 +1786,40 @@ static int cnss_wlan_pci_suspend(struct device *dev)
 	if (!penv)
 		goto out;
 
-	if (!penv->pcie_link_state)
+	if (!penv->pcie_link_state) {
+		pr_err("%s: skip due to pcie link is already suspended\n", __func__);
 		goto out;
+	}
 
 	wdriver = penv->driver;
 	if (!wdriver)
 		goto out;
 
-	if (wdriver->suspend) {
+	if (wdriver->suspend)
 		ret = wdriver->suspend(pdev, state);
 
-		if (penv->pcie_link_state) {
-			pci_save_state(pdev);
-			penv->saved_state = cnss_pci_store_saved_state(pdev);
-		}
+	penv->saved_state = cnss_pci_store_saved_state(pdev);
+
+	if (penv->disable_pc) {
+		pr_err("%s: skip link suspend due to disable_pc is set\n", __func__);
+		goto out;
 	}
+
+	if (penv->pcie_link_state) {
+		if (cnss_msm_pcie_pm_control(MSM_PCIE_SUSPEND,
+						 cnss_get_pci_dev_bus_number(pdev),
+						 pdev, PM_OPTIONS)) {
+			pr_err("%s: Failed to suspend PCIe link\n", __func__);
+			ret = -EAGAIN;
+			goto out;
+		}
+		penv->pcie_link_state = false;
+#ifdef CNSS_COMPLIE_ISSUE_FIX_LATER_IFNEEDED
+		legacy_bus_client_update_request(penv->bus_client,
+						CNSS_BUS_WIDTH_NONE);
+#endif
+	}
+
 	penv->monitor_wake_intr = false;
 
 out:
@@ -1815,8 +1835,24 @@ static int cnss_wlan_pci_resume(struct device *dev)
 	if (!penv)
 		goto out;
 
-	if (!penv->pcie_link_state)
-		goto out;
+	if (!penv->pcie_link_state) {
+		if (cnss_msm_pcie_pm_control(MSM_PCIE_RESUME,
+					     cnss_get_pci_dev_bus_number(pdev),
+					     pdev, PM_OPTIONS)) {
+			pr_err("%s: Failed to resume PCIe link\n", __func__);
+			ret = -EAGAIN;
+			goto out;
+		}
+		ret = pci_enable_device(pdev);
+		if (ret)
+			pr_err("%s: enable device failed: %d\n", __func__, ret);
+		pci_set_master(pdev);
+		penv->pcie_link_state = true;
+#ifdef CNSS_COMPLIE_ISSUE_FIX_LATER_IFNEEDED
+		legacy_bus_client_update_request(penv->bus_client,
+						penv->current_bandwidth_vote);
+#endif
+	}
 
 	wdriver = penv->driver;
 	if (!wdriver)
@@ -1827,7 +1863,6 @@ static int cnss_wlan_pci_resume(struct device *dev)
 			cnss_pci_load_and_free_saved_state(pdev,
 							   &penv->saved_state);
 		pci_restore_state(pdev);
-
 		ret = wdriver->resume(pdev);
 	}
 
@@ -2583,12 +2618,19 @@ EXPORT_SYMBOL(cnss_wlan_unregister_driver);
 #ifdef CONFIG_PCI_MSM
 int cnss_wlan_pm_control(bool vote)
 {
+	int ret = 0;
+
 	if (!penv || !penv->pdev)
 		return -ENODEV;
 
-	return cnss_msm_pcie_pm_control(vote ? MSM_PCIE_DISABLE_PC : MSM_PCIE_ENABLE_PC,
-					cnss_get_pci_dev_bus_number(penv->pdev),
-					penv->pdev, PM_OPTIONS);
+	if (vote)
+		pr_err("PCIe power collapse is disabled\n");
+	else
+		pr_err("PCIe power collapse is enabled\n");
+
+	penv->disable_pc = vote;
+
+	return ret;
 }
 EXPORT_SYMBOL(cnss_wlan_pm_control);
 #endif
@@ -3566,12 +3608,15 @@ int cnss_auto_suspend(void)
 	pdev = penv->pdev;
 
 	if (penv->pcie_link_state) {
+		pr_err("%s: suspending pcie link\n", __func__);
 		pci_save_state(pdev);
 		penv->saved_state = cnss_pci_store_saved_state(pdev);
 		pci_disable_device(pdev);
 		ret = pci_set_power_state(pdev, PCI_D3hot);
 		if (ret)
 			pr_err("%s: Set D3Hot failed: %d\n", __func__, ret);
+		else
+			pr_err("%s: set D3hot succeed\n", __func__);
 		if (cnss_msm_pcie_pm_control(MSM_PCIE_SUSPEND,
 					     cnss_get_pci_dev_bus_number(pdev),
 					     pdev, PM_OPTIONS)) {
