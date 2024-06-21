@@ -1653,7 +1653,7 @@ int wlfw_qdss_trace_stop(struct icnss_priv *priv, unsigned long long option)
 					     option);
 }
 
-int wlfw_wlan_cfg_send_sync_msg(struct icnss_priv *priv,
+static int wlfw_wlan_cfg_send_sync_msg(struct icnss_priv *priv,
 				struct wlfw_wlan_cfg_req_msg_v01 *data)
 {
 	int ret;
@@ -2153,7 +2153,7 @@ out:
 	return ret;
 }
 
-void icnss_handle_rejuvenate(struct icnss_priv *priv)
+static void icnss_handle_rejuvenate(struct icnss_priv *priv)
 {
 	struct icnss_event_pd_service_down_data *event_data;
 	struct icnss_uevent_fw_down_data fw_down_data = {0};

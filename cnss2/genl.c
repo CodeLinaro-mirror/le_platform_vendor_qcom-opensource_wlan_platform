@@ -14,6 +14,7 @@
 
 #include "main.h"
 #include "debug.h"
+#include "genl.h"
 
 #define CNSS_GENL_FAMILY_NAME "cnss-genl"
 #define CNSS_GENL_MCAST_GROUP_NAME "cnss-genl-grp"
