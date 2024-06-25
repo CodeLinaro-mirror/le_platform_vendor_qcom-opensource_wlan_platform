@@ -127,6 +127,11 @@ struct cnss_plat_data *cnss_get_plat_priv(struct platform_device *plat_dev)
 	return plat_env;
 }
 
+bool cnss_is_caldb_seg_enable(struct cnss_plat_data *plat_priv)
+{
+	return plat_priv->enable_caldb_seg;
+}
+
 /**
  * cnss_get_mem_seg_count - Get segment count of memory
  * @type: memory type
@@ -4273,6 +4278,15 @@ register_driver:
 	return ret;
 }
 EXPORT_SYMBOL(cnss_wlan_hw_enable);
+
+void cnss_get_caldb_seg(struct cnss_plat_data *plat_priv)
+{
+	plat_priv->enable_caldb_seg =
+		of_property_read_bool(plat_priv->plat_dev->dev.of_node,
+				      "qcom,enable-caldb-seg");
+	cnss_pr_dbg("qcom,enable caldb seg is %d\n",
+		    plat_priv->enable_caldb_seg);
+}
 
 int cnss_set_wfc_mode(struct device *dev, struct cnss_wfc_cfg cfg)
 {
