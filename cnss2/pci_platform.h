@@ -152,4 +152,5 @@ bool cnss_should_suspend_pwroff(struct pci_dev *pci_dev);
  * Return: 0 for success, error code on failure
  */
 int cnss_mhi_get_soc_info(struct mhi_controller *mhi_ctrl);
+
 #endif /* _CNSS_PCI_PLATFORM_H*/
