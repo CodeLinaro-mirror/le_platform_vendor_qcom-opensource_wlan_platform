@@ -1460,7 +1460,7 @@ end:
 	return ret;
 }
 
-void cnss_get_qdss_cfg_filename(struct cnss_plat_data *plat_priv,
+static void cnss_get_qdss_cfg_filename(struct cnss_plat_data *plat_priv,
 				char *filename, u32 filename_len,
 				bool fallback_file)
 {
@@ -3953,7 +3953,7 @@ void cnss_unregister_coex_service(struct cnss_plat_data *plat_priv)
 }
 
 /* IMS Service */
-int ims_subscribe_for_indication_send_async(struct cnss_plat_data *plat_priv)
+static int ims_subscribe_for_indication_send_async(struct cnss_plat_data *plat_priv)
 {
 	int ret;
 	struct ims_private_service_subscribe_for_indications_req_msg_v01 *req;
