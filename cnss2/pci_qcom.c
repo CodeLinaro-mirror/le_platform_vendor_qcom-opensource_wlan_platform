@@ -721,6 +721,17 @@ bool cnss_should_suspend_pwroff(struct pci_dev *pci_dev)
 }
 #endif
 
+void cnss_init_sw_reset_params(struct cnss_pci_data *pci_priv)
+{
+	pci_priv->reset_regs = NULL;
+	return;
+}
+
+void cnss_pci_sw_reset(struct cnss_pci_data *pci_priv, bool power_on)
+{
+	return;
+}
+
 int cnss_mhi_get_soc_info(struct mhi_controller *mhi_ctrl)
 {
 	return mhi_get_soc_info(mhi_ctrl);

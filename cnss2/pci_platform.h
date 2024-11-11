@@ -144,6 +144,8 @@ void cnss_pci_set_tme_support(struct mhi_controller *mhi_ctrl,
 			      struct cnss_pci_data *pci_priv);
 bool cnss_pci_is_sync_probe(void);
 bool cnss_should_suspend_pwroff(struct pci_dev *pci_dev);
+void cnss_init_sw_reset_params(struct cnss_pci_data *pci_priv);
+void cnss_pci_sw_reset(struct cnss_pci_data *pci_priv, bool power_on);
 
 /**
  * cnss_mhi_get_soc_info - Get SoC info before registering mhi controller
