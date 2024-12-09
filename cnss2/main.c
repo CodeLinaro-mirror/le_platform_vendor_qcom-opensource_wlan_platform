@@ -1694,6 +1694,11 @@ static int cnss_get_resources(struct cnss_plat_data *plat_priv)
 {
 	int ret = 0;
 
+	if (plat_priv->is_fw_managed_pwr) {
+		ret = cnss_fw_managed_domain_attach(plat_priv);
+		goto out;
+	}
+
 	ret = cnss_get_vreg_type(plat_priv, CNSS_VREG_PRIM);
 	if (ret < 0) {
 		cnss_pr_err("Failed to get vreg, err = %d\n", ret);
@@ -1724,6 +1729,16 @@ out:
 
 static void cnss_put_resources(struct cnss_plat_data *plat_priv)
 {
+	if (plat_priv->is_fw_managed_pwr) {
+		if (plat_priv->powered_on) {
+			cnss_fw_managed_power_gpio(plat_priv,
+						   false);
+			cnss_fw_managed_power_regulator(plat_priv,
+							false);
+		}
+		cnss_fw_managed_domain_detach(plat_priv);
+		return;
+	}
 	cnss_put_clk(plat_priv);
 	cnss_put_vreg_type(plat_priv, CNSS_VREG_PRIM);
 }
@@ -3300,8 +3315,8 @@ static void init_elf_identification(struct elf32_hdr *ehdr, unsigned char class)
 	ehdr->e_ident[EI_OSABI] = ELFOSABI_NONE;
 }
 
-int cnss_qcom_elf_dump(struct list_head *segs, struct device *dev,
-		       unsigned char class)
+static int cnss_qcom_elf_dump(struct list_head *segs, struct device *dev,
+			      unsigned char class)
 {
 	struct cnss_qcom_dump_segment *segment;
 	void *phdr, *ehdr;
@@ -4230,7 +4245,7 @@ static int cnss_register_bus_scale(struct cnss_plat_data *plat_priv)
 static void cnss_unregister_bus_scale(struct cnss_plat_data *plat_priv) {}
 #endif /* CONFIG_INTERCONNECT */
 
-void cnss_daemon_connection_update_cb(void *cb_ctx, bool status)
+static void cnss_daemon_connection_update_cb(void *cb_ctx, bool status)
 {
 	struct cnss_plat_data *plat_priv = cb_ctx;
 
@@ -4347,7 +4362,7 @@ static ssize_t time_sync_period_show(struct device *dev,
  *
  * Result: return minimum time sync period present in vote from wlan and sys
  */
-uint32_t cnss_get_min_time_sync_period_by_vote(struct cnss_plat_data *plat_priv)
+static uint32_t cnss_get_min_time_sync_period_by_vote(struct cnss_plat_data *plat_priv)
 {
 	unsigned int i, min_time_sync_period = CNSS_TIME_SYNC_PERIOD_INVALID;
 	unsigned int time_sync_period;
@@ -5246,6 +5261,13 @@ cnss_dt_type(struct cnss_plat_data *plat_priv)
 	return CNSS_DTT_LEGACY;
 }
 
+static inline bool
+cnss_resource_is_fw_managed(struct cnss_plat_data *plat_priv)
+{
+	return of_property_read_bool(plat_priv->plat_dev->dev.of_node,
+				     "firmware-managed-resources");
+}
+
 static int cnss_wlan_device_init(struct cnss_plat_data *plat_priv)
 {
 	int ret = 0;
@@ -5567,6 +5589,8 @@ static int cnss_probe(struct platform_device *plat_dev)
 	plat_priv->use_fw_path_with_prefix =
 		cnss_use_fw_path_with_prefix(plat_priv);
 
+	plat_priv->is_fw_managed_pwr = cnss_resource_is_fw_managed(plat_priv);
+
 	ret = cnss_get_dev_cfg_node(plat_priv);
 	if (ret) {
 		cnss_pr_err("Failed to get device cfg node, err = %d\n", ret);
@@ -5598,6 +5622,7 @@ static int cnss_probe(struct platform_device *plat_dev)
 	cnss_get_pm_domain_info(plat_priv);
 	cnss_get_wlaon_pwr_ctrl_info(plat_priv);
 	cnss_power_misc_params_init(plat_priv);
+	cnss_pci_of_switch_type_init(plat_priv);
 	cnss_get_tcs_info(plat_priv);
 	cnss_get_cpr_info(plat_priv);
 	cnss_aop_interface_init(plat_priv);
@@ -5664,7 +5689,7 @@ deinit_misc:
 destroy_debugfs:
 	cnss_debugfs_destroy(plat_priv);
 deinit_dms:
-	cnss_cancel_dms_work();
+	cnss_cancel_dms_work(plat_priv);
 	cnss_dms_deinit(plat_priv);
 deinit_event_work:
 	cnss_event_work_deinit(plat_priv);
@@ -5697,7 +5722,7 @@ static int cnss_remove(struct platform_device *plat_dev)
 	cnss_bus_deinit(plat_priv);
 	cnss_misc_deinit(plat_priv);
 	cnss_debugfs_destroy(plat_priv);
-	cnss_cancel_dms_work();
+	cnss_cancel_dms_work(plat_priv);
 	cnss_dms_deinit(plat_priv);
 	cnss_qmi_deinit(plat_priv);
 	cnss_event_work_deinit(plat_priv);
