@@ -460,6 +460,11 @@ int cnss_pci_get_msi_assignment(struct cnss_pci_data *pci_priv)
 	return 0;
 }
 
+int cnss_pci_prevent_linkdown_status(void)
+{
+	return 0;
+}
+
 #ifdef CONFIG_ONE_MSI_VECTOR
 int cnss_pci_get_one_msi_assignment(struct cnss_pci_data *pci_priv)
 {

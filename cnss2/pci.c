@@ -3909,6 +3909,14 @@ static int cnss_pci_suspend(struct device *dev)
 		}
 	}
 
+	if (pci_priv->disable_pc) {
+		ret = cnss_pci_prevent_linkdown_status();
+		if (ret) {
+			cnss_pr_dbg("Not support suspend with PCIe link up, reject\n");
+			goto out;
+		}
+	}
+
 	set_bit(CNSS_IN_SUSPEND_RESUME, &plat_priv->driver_state);
 
 	ret = cnss_pci_suspend_driver(pci_priv);
