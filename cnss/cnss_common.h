@@ -56,4 +56,5 @@ int cnss_sdio_power_down(struct device *dev);
 int cnss_pcie_power_up(struct device *dev);
 int cnss_pcie_power_down(struct device *dev);
 const char *cnss_wlan_get_evicted_data_file(void);
+void cnss_wlan_set_pm_domain(struct pci_dev *pdev);
 #endif /* _NET_CNSS_COMMON_H_ */
