@@ -1107,7 +1107,9 @@ static int cnss_pci_force_wake_get(struct cnss_pci_data *pci_priv)
 	ret = cnss_pci_force_wake_request_sync(dev,
 					       FORCE_WAKE_DELAY_TIMEOUT_US);
 	if (ret) {
-		if (ret != -EAGAIN)
+		if (ret == -EOPNOTSUPP)
+			cnss_pr_dbg("Request to force wake is not supported\n");
+		else if (ret != -EAGAIN)
 			cnss_pr_err("Failed to request force wake\n");
 		return ret;
 	}
