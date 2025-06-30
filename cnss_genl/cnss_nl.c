@@ -70,7 +70,8 @@ static const struct nla_policy cld80211_policy[CLD80211_ATTR_MAX + 1] = {
 	[CLD80211_ATTR_CMD_TAG_DATA] = { .type = NLA_NESTED },
 };
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(6, 2, 0) || \
+	LINUX_VERSION_CODE == KERNEL_VERSION(5, 14, 0))
 static int cld80211_pre_doit(const struct genl_split_ops *ops,
 			     struct sk_buff *skb,
 			     struct genl_info *info)
