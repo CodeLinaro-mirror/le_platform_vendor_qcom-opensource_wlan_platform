@@ -640,6 +640,7 @@ struct cnss_plat_data {
 	bool no_bwscale;
 	bool sleep_clk;
 	bool is_fw_managed_pwr;
+	bool is_gunyah;
 	struct device **pd_devs;
 	int pd_count;
 	bool ipa_shared_cb_enable;
