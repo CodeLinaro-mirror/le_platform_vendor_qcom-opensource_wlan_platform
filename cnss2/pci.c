@@ -44,7 +44,11 @@
 #define MHI_MSI_NAME			"MHI"
 
 #define QCA6390_PATH_PREFIX		"qca6390/"
+#ifdef CONFIG_QLI_FW_PATH_PREFIX
+#define QCA6490_PATH_PREFIX		"qcacld/WCN6855/hw2.1/"
+#else
 #define QCA6490_PATH_PREFIX		"qca6490/"
+#endif
 #define QCN7605_PATH_PREFIX             "qcn7605/"
 #define KIWI_PATH_PREFIX		"kiwi/"
 #define MANGO_PATH_PREFIX		"mango/"
