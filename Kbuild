@@ -86,6 +86,10 @@ ifneq ($(filter $(CONFIG_PINCTRL_MSM),y m),)
 KBUILD_CPPFLAGS += -DCONFIG_CNSS_PINCTRL_MSM
 endif
 
+ifeq ($(CONFIG_QLI_FW_PATH_PREFIX),y)
+KBUILD_CPPFLAGS += -DCONFIG_QLI_FW_PATH_PREFIX
+endif
+
 obj-$(CONFIG_CNSS2) += cnss2/
 obj-$(CONFIG_ICNSS2) += icnss2/
 obj-$(CONFIG_CNSS_GENL) += cnss_genl/
