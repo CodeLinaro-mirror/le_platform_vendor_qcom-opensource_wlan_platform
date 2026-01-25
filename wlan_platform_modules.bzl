@@ -10,7 +10,7 @@ _default_module_enablement_list = [
 ]
 
 _cnss2_enabled_target = ["seraph", "niobe", "pineapple", "sun", "x1e80100", "volcano", "canoe", "hamoa", "sdxkova", "autogvm", "autoghgvm", "lahaina", "parrot", "art", "sa510m", "sa510m.1g"]
-_icnss2_enabled_target = ["blair", "pineapple", "monaco", "pitti", "volcano", "parrot", "sun", "canoe", "lahaina", "chora", "alor-le", "art", "bengal", "malabar"]
+_icnss2_enabled_target = ["blair", "pineapple", "monaco", "pitti", "volcano", "parrot", "sun", "canoe", "lahaina", "chora", "alor-le", "art", "bengal", "malabar", "taycan"]
 
 def _get_module_list(target, variant):
     tv = "{}_{}".format(target, variant)
@@ -77,7 +77,7 @@ def _define_platform_config_rule(module, target, variant):
 def _define_modules_for_target_variant(target, variant):
     tv = "{}_{}".format(target, variant)
 
-    if target != "sa510m" and target != "sa510m.1g":
+    if target != "sa510m" and target != "sa510m.1g" and target != "taycan":
         kernel_build = select({
             "//build/qcom_build_extensions:qtisocrepo_true": "//soc-repo:{}_base_kernel".format(tv),
             "//build/qcom_build_extensions:qtisocrepo_false": "//msm-kernel:{}".format(tv),
@@ -204,22 +204,25 @@ def _define_modules_for_target_variant(target, variant):
         module = "icnss2"
         _define_platform_config_rule(module, target, variant)
         defconfig = ":{}/{}_defconfig_generate_{}".format(module, tv, variant)
-        deps = select({
-               "//build/qcom_build_extensions:qtisocrepo_true": [
-                "//soc-repo:all_headers",
-                "//soc-repo:{}/kernel/trace/qcom_ipc_logging".format(tv),
-                "//soc-repo:{}/drivers/soc/qcom/qcom_ramdump".format(tv),
-                "//soc-repo:{}/drivers/soc/qcom/socinfo".format(tv),
-                "//soc-repo:{}/drivers/soc/qcom/pdr_interface".format(tv),
-                "//soc-repo:{}/drivers/remoteproc/rproc_qcom_common".format(tv),
-                "//soc-repo:{}/drivers/soc/qcom/qmi_helpers".format(tv),
-                "//soc-repo:{}/drivers/pinctrl/qcom/pinctrl-msm".format(tv),
-                "//soc-repo:{}/drivers/soc/qcom/qcom_aoss".format(tv),
+        if target == "taycan":
+            deps = ["//msm-kernel:all_headers",]
+        else:
+            deps = select({
+                    "//build/qcom_build_extensions:qtisocrepo_true": [
+                    "//soc-repo:all_headers",
+                    "//soc-repo:{}/kernel/trace/qcom_ipc_logging".format(tv),
+                    "//soc-repo:{}/drivers/soc/qcom/qcom_ramdump".format(tv),
+                    "//soc-repo:{}/drivers/soc/qcom/socinfo".format(tv),
+                    "//soc-repo:{}/drivers/soc/qcom/pdr_interface".format(tv),
+                    "//soc-repo:{}/drivers/remoteproc/rproc_qcom_common".format(tv),
+                    "//soc-repo:{}/drivers/soc/qcom/qmi_helpers".format(tv),
+                    "//soc-repo:{}/drivers/pinctrl/qcom/pinctrl-msm".format(tv),
+                    "//soc-repo:{}/drivers/soc/qcom/qcom_aoss".format(tv),
+                   ],
+                       "//build/qcom_build_extensions:qtisocrepo_false": [
+                       "//msm-kernel:all_headers",
                ],
-               "//build/qcom_build_extensions:qtisocrepo_false": [
-                  "//msm-kernel:all_headers",
-               ],
-        })
+            })
         ddk_module(
             name = "{}_icnss2".format(tv),
             srcs = native.glob([
@@ -253,7 +256,7 @@ def _define_modules_for_target_variant(target, variant):
     module = "cnss_genl"
     _define_platform_config_rule(module, target, variant)
     defconfig = ":{}/{}_defconfig_generate_{}".format(module, tv, variant)
-    if target != "sa510m" and target != "sa510m.1g":
+    if target != "sa510m" and target != "sa510m.1g" and target != "taycan":
         deps = select({
             "//build/qcom_build_extensions:qtisocrepo_true": ["//soc-repo:all_headers"],
             "//build/qcom_build_extensions:qtisocrepo_false": ["//msm-kernel:all_headers"],
@@ -298,7 +301,7 @@ def _define_modules_for_target_variant(target, variant):
         ":wlan-platform-headers",
     ]
 
-    if target != "sa510m" and target != "sa510m.1g":
+    if target != "sa510m" and target != "sa510m.1g" and target != "taycan":
         cnss_utils_dep_list += select({
             "//build/qcom_build_extensions:qtisocrepo_true": ["//soc-repo:all_headers"],
             "//build/qcom_build_extensions:qtisocrepo_false": ["//msm-kernel:all_headers"],
@@ -330,7 +333,7 @@ def _define_modules_for_target_variant(target, variant):
 
     module = "cnss_utils"
     defconfig = ":{}/{}_defconfig_generate_{}".format(module, tv, variant)
-    if target != "sa510m" and target != "sa510m.1g":
+    if target != "sa510m" and target != "sa510m.1g" and target != "taycan":
         deps = select({
             "//build/qcom_build_extensions:qtisocrepo_true": [
                 "//soc-repo:all_headers",

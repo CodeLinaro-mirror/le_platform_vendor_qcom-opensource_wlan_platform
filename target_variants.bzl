@@ -27,6 +27,7 @@ le_targets = [
     # keep sorted
     "alor-le",
     "sun-allyes",
+    "taycan"
 ]
 
 le_32_targets = [
