@@ -644,6 +644,7 @@ struct cnss_plat_data {
 	bool is_fw_managed_pwr;
 	struct device **pd_devs;
 	int pd_count;
+	bool ipa_shared_cb_enable;
 };
 
 #if IS_ENABLED(CONFIG_ARCH_QCOM)
