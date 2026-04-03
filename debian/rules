@@ -1,0 +1,73 @@
+#!/usr/bin/make -f
+# Debian rules for wlan-platform-dlkm
+
+export DH_VERBOSE = 1
+
+# ---------------------------------------------------------------------------
+# Source directory
+# ---------------------------------------------------------------------------
+KERNEL_SRC     ?= /usr/src/kernel
+
+# ---------------------------------------------------------------------------
+# Build configuration flags
+# ---------------------------------------------------------------------------
+WLAN_PLATFORM_CFG = \
+	USE_EXTERNAL_CONFIGS=y \
+	CONFIG_CNSS_OUT_OF_TREE=y \
+	CONFIG_CNSS2=m \
+	CONFIG_AUTO_PROJECT=y \
+	CONFIG_CNSS2_QMI=y \
+	CONFIG_CNSS2_DEBUG=y \
+	CONFIG_CNSS_QMI_SVC=m \
+	CONFIG_CNSS_PLAT_IPC_QMI_SVC=m \
+	CONFIG_CNSS_GENL=m \
+	CONFIG_CNSS_UTILS=m \
+	CONFIG_CNSS2_CONDITIONAL_POWEROFF=y \
+	CONFIG_CNSS_REQ_FW_DIRECT=y \
+	CONFIG_CNSS2_ENUM_WITH_LOW_SPEED=y
+
+EXTRA_FLAGS = \
+	CONFIG_PINCTRL_MSM=n \
+	CONFIG_QCOM_MEMORY_DUMP_V2=y \
+	CONFIG_PINCTRL_MSM_NO_EXT=y
+
+MAKE_ARGS = $(WLAN_PLATFORM_CFG) $(EXTRA_FLAGS)
+
+PKG_DIR = $(CURDIR)/debian/wlan-platform-dlkm
+
+# ---------------------------------------------------------------------------
+# debhelper targets
+# ---------------------------------------------------------------------------
+%:
+	dh $@
+
+override_dh_auto_build:
+	export ROOT_DIR="" && \
+	export KERNEL_DIR=$(KERNEL_SRC) && \
+	export WLAN_PLATFORM_ROOT=$(CURDIR) && \
+	$(MAKE) -j$(shell nproc) -C $(KERNEL_SRC) \
+		M=$(CURDIR) \
+		WLAN_PLATFORM_ROOT=$(CURDIR) \
+		$(MAKE_ARGS) \
+		modules
+
+override_dh_auto_install:
+	# Install kernel modules with strip → /lib/modules/<kver>/<INSTALL_MOD_DIR>/
+	$(MAKE) -C $(KERNEL_SRC) \
+		M=$(CURDIR) \
+		WLAN_PLATFORM_ROOT=$(CURDIR) \
+		$(MAKE_ARGS) \
+		INSTALL_MOD_PATH=$(PKG_DIR) \
+		INSTALL_MOD_STRIP=1 \
+		modules_install
+	# Install Module.symvers and public headers (do_install:append)
+	install -d $(PKG_DIR)/usr/include/wlan-platform/inc
+	install -m 0644 $(CURDIR)/Module.symvers \
+		$(PKG_DIR)/usr/include/wlan-platform/
+	install -m 0644 $(CURDIR)/inc/* \
+		$(PKG_DIR)/usr/include/wlan-platform/inc/
+
+override_dh_auto_clean:
+	export WLAN_PLATFORM_ROOT=$(CURDIR) && \
+	$(MAKE) -C $(KERNEL_SRC) M=$(CURDIR) WLAN_PLATFORM_ROOT=$(CURDIR) $(MAKE_ARGS) clean || true
+

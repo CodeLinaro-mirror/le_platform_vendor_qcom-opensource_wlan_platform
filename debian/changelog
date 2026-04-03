@@ -1,0 +1,8 @@
+wlan-platform-dlkm (1.0.0) unstable; urgency=medium
+
+  * Builds out-of-tree kernel modules: cnss2, cnss_utils,
+    wlan_firmware_service, cnss_plat_ipc_qmi_svc, cnss_nl.
+  * Installs Module.symvers and public headers to
+    /usr/include/wlan-platform/.
+
+ -- Ben Wang <benw@qti.qualcomm.com>  Thu, 27 Mar 2026 09:00:00 +0000

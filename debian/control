@@ -1,0 +1,33 @@
+Source: wlan-platform-dlkm
+Section: kernel
+Priority: optional
+Maintainer: Ben Wang <benw@qti.qualcomm.com>
+Build-Depends: debhelper-compat (= 13),
+               linux-qcom-source
+Standards-Version: 4.6.0
+Homepage: https://git.codelinaro.org/
+
+Package: wlan-platform-dlkm
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Wlan platform drivers
+ Build wlan platform drivers to kernel modules.
+ .
+ Provides the following out-of-tree kernel modules:
+  - cnss2.ko       : CNSS2 PCIe WLAN platform driver
+  - cnss_utils.ko  : CNSS utility functions
+  - wlan_firmware_service.ko : WLAN firmware QMI service
+  - cnss_plat_ipc_qmi_svc.ko : CNSS platform IPC QMI service
+  - cnss_nl.ko     : CNSS generic netlink driver
+ .
+ Also installs Module.symvers and public headers under
+ /usr/include/wlan-platform/.
+
+Package: wlan-platform-dlkm-dev
+Architecture: any
+Depends: ${misc:Depends}, wlan-platform-dlkm (= ${binary:Version})
+Description: Wlan platform drivers - development headers
+ Development headers and Module.symvers for building out-of-tree WLAN modules
+ that depend on the wlan-platform-dlkm kernel modules.
+ .
+ Installs Module.symvers and public headers under /usr/include/wlan-platform/.
