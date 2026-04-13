@@ -55,7 +55,6 @@
 #define PHY_UCODE_V2_FILE_NAME		"phy_ucode20.elf"
 #define DEFAULT_FW_FILE_NAME		"amss.bin"
 #define FW_V2_FILE_NAME			"amss20.bin"
-#define FW_V2_FTM_FILE_NAME		"amss20_ftm.bin"
 #define DEVICE_MAJOR_VERSION_MASK	0xF
 
 #define WAKE_MSI_NAME			"WAKE"
@@ -784,6 +783,9 @@ static struct cnss_print_optimize print_optimize;
 
 static int cnss_pci_update_fw_name(struct cnss_pci_data *pci_priv);
 static void cnss_pci_suspend_pwroff(struct pci_dev *pci_dev);
+static void cnss_pci_update_link_event(struct cnss_pci_data *pci_priv,
+				       enum cnss_bus_event_type type,
+				       void *data);
 
 #if IS_ENABLED(CONFIG_MHI_BUS_MISC)
 static void cnss_mhi_debug_reg_dump(struct cnss_pci_data *pci_priv)
@@ -1464,6 +1466,8 @@ int cnss_resume_pci_link(struct cnss_pci_data *pci_priv)
 	ret = cnss_set_pci_link(pci_priv, PCI_LINK_UP);
 	if (ret) {
 		ret = -EAGAIN;
+		cnss_pci_update_link_event(pci_priv,
+					   BUS_EVENT_PCI_LINK_RESUME_FAIL, NULL);
 		goto out;
 	}
 
@@ -3112,21 +3116,6 @@ static int cnss_qca6174_ramdump(struct cnss_pci_data *pci_priv)
 	return cnss_do_ramdump(plat_priv);
 }
 
-static void cnss_get_driver_mode_update_fw_name(struct cnss_plat_data *plat_priv)
-{
-	struct cnss_pci_data *pci_priv;
-	struct cnss_wlan_driver *driver_ops;
-
-	pci_priv = plat_priv->bus_priv;
-	driver_ops = pci_priv->driver_ops;
-
-	if (driver_ops && driver_ops->get_driver_mode) {
-		plat_priv->driver_mode = driver_ops->get_driver_mode();
-		cnss_pci_update_fw_name(pci_priv);
-		cnss_pr_dbg("New driver mode is %d", plat_priv->driver_mode);
-	}
-}
-
 static int cnss_qca6290_powerup(struct cnss_pci_data *pci_priv)
 {
 	int ret = 0;
@@ -3147,8 +3136,6 @@ static int cnss_qca6290_powerup(struct cnss_pci_data *pci_priv)
 	pci_priv->qmi_send_usage_count = 0;
 
 	plat_priv->power_up_error = 0;
-
-	cnss_get_driver_mode_update_fw_name(plat_priv);
 retry:
 	ret = cnss_power_on_device(plat_priv, false);
 	if (ret) {
@@ -3616,8 +3603,6 @@ int cnss_wlan_register_driver(struct cnss_wlan_driver *driver_ops)
 			    plat_priv->device_version.major_version);
 		return -ENODEV;
 	}
-
-	cnss_get_driver_mode_update_fw_name(plat_priv);
 	set_bit(CNSS_DRIVER_REGISTER, &plat_priv->driver_state);
 
 	if (!plat_priv->cbc_enabled ||
@@ -5055,6 +5040,15 @@ bool cnss_pci_is_smmu_s1_enabled(struct cnss_pci_data *pci_priv)
 
 	return false;
 }
+
+bool cnss_smmu_s1_enabled(struct device *dev)
+{
+	struct cnss_pci_data *pci_priv = cnss_get_pci_priv(to_pci_dev(dev));
+
+	return cnss_pci_is_smmu_s1_enabled(pci_priv);
+}
+EXPORT_SYMBOL(cnss_smmu_s1_enabled);
+
 struct iommu_domain *cnss_smmu_get_domain(struct device *dev)
 {
 	struct cnss_pci_data *pci_priv = cnss_get_pci_priv(to_pci_dev(dev));
@@ -5194,7 +5188,7 @@ int cnss_get_soc_info(struct device *dev, struct cnss_soc_info *info)
 	info->board_id = plat_priv->board_info.board_id;
 	info->soc_id = plat_priv->soc_info.soc_id;
 	info->fw_version = plat_priv->fw_version_info.fw_version;
-	strlcpy(info->fw_build_timestamp,
+	strscpy(info->fw_build_timestamp,
 		plat_priv->fw_version_info.fw_build_timestamp,
 		sizeof(info->fw_build_timestamp));
 	memcpy(&info->device_version, &plat_priv->device_version,
@@ -6297,65 +6291,17 @@ static int cnss_pci_update_fw_name(struct cnss_pci_data *pci_priv)
 			 FW_V2_FILE_NAME);
 		break;
 	case QCA6490_DEVICE_ID:
-		switch (plat_priv->device_version.major_version) {
-		case FW_V2_NUMBER:
-				cnss_pci_add_fw_prefix_name(pci_priv,
-							    plat_priv->firmware_name,
-							    FW_V2_FILE_NAME);
-				snprintf(plat_priv->fw_fallback_name,
-					 MAX_FIRMWARE_NAME_LEN,
-					 FW_V2_FILE_NAME);
-			break;
-		default:
-			cnss_pci_add_fw_prefix_name(pci_priv,
-						    plat_priv->firmware_name,
-						    DEFAULT_FW_FILE_NAME);
-			snprintf(plat_priv->fw_fallback_name,
-				 MAX_FIRMWARE_NAME_LEN,
-				 DEFAULT_FW_FILE_NAME);
-			break;
-		}
-		break;
 	case KIWI_DEVICE_ID:
 	case MANGO_DEVICE_ID:
 	case PEACH_DEVICE_ID:
 		switch (plat_priv->device_version.major_version) {
 		case FW_V2_NUMBER:
-			/*
-			 * kiwiv2 using seprate fw binary for MM and FTM mode,
-			 * platform driver loads corresponding binary according
-			 * to current mode indicated by wlan driver. Otherwise
-			 * use default binary.
-			 * Mission mode using same binary name as before,
-			 * if seprate binary is not there, fall back to default.
-			 */
-			if (plat_priv->driver_mode == CNSS_MISSION) {
-				cnss_pci_add_fw_prefix_name(pci_priv,
-							    plat_priv->firmware_name,
-							    FW_V2_FILE_NAME);
-				cnss_pci_add_fw_prefix_name(pci_priv,
-							    plat_priv->fw_fallback_name,
-							    FW_V2_FILE_NAME);
-			} else if (plat_priv->driver_mode == CNSS_FTM) {
-				cnss_pci_add_fw_prefix_name(pci_priv,
-							    plat_priv->firmware_name,
-							    FW_V2_FTM_FILE_NAME);
-				cnss_pci_add_fw_prefix_name(pci_priv,
-							    plat_priv->fw_fallback_name,
-							    FW_V2_FILE_NAME);
-			} else {
-				/*
-				 * Since during cold boot calibration phase,
-				 * wlan driver has not registered, so default
-				 * fw binary will be used.
-				 */
 				cnss_pci_add_fw_prefix_name(pci_priv,
 							    plat_priv->firmware_name,
 							    FW_V2_FILE_NAME);
 				snprintf(plat_priv->fw_fallback_name,
 					 MAX_FIRMWARE_NAME_LEN,
 					 FW_V2_FILE_NAME);
-			}
 			break;
 		default:
 			cnss_pci_add_fw_prefix_name(pci_priv,
@@ -6527,12 +6473,8 @@ static void cnss_mhi_notify_status(struct mhi_controller *mhi_ctrl,
 #if IS_ENABLED(CONFIG_MHI_BUS_MISC) && \
 (LINUX_VERSION_CODE < KERNEL_VERSION(6, 2, 0))
 	case MHI_CB_FALLBACK_IMG:
-		/* for kiwi_v2 binary fallback is used, skip path fallback here */
-		if (!(pci_priv->device_id == KIWI_DEVICE_ID &&
-		      plat_priv->device_version.major_version == FW_V2_NUMBER)) {
-			plat_priv->use_fw_path_with_prefix = false;
-			cnss_pci_update_fw_name(pci_priv);
-		}
+		plat_priv->use_fw_path_with_prefix = false;
+		cnss_pci_update_fw_name(pci_priv);
 		return;
 #endif
 
