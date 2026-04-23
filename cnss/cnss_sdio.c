@@ -19,9 +19,15 @@
 #include <linux/io.h>
 #include <soc/qcom/subsystem_restart.h>
 #include <soc/qcom/subsystem_notif.h>
-#include <soc/qcom/ramdump.h>
 #include <soc/qcom/memory_dump.h>
+#include <linux/version.h>
+#ifdef CONFIG_CNSS_OUT_OF_TREE
+#include "cnss.h"
+#include "ramdump.h"
+#else
 #include <net/cnss.h>
+#include <soc/qcom/ramdump.h>
+#endif
 #include "cnss_common.h"
 #include <linux/pm_qos.h>
 #include <linux/gpio.h>
@@ -166,6 +172,16 @@ static const struct sdio_device_id ar6k_id_table[] = {
 };
 MODULE_DEVICE_TABLE(sdio, ar6k_id_table);
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+void cnss_sdio_request_pm_qos_type(int latency_type, u32 qos_val)
+{
+	if (!cnss_pdata)
+		return;
+
+	pr_debug("PM QoS value: %d\n", qos_val);
+	cpu_latency_qos_add_request(&cnss_pdata->qos_request, qos_val);
+}
+#else
 void cnss_sdio_request_pm_qos_type(int latency_type, u32 qos_val)
 {
 	if (!cnss_pdata)
@@ -174,6 +190,7 @@ void cnss_sdio_request_pm_qos_type(int latency_type, u32 qos_val)
 	pr_debug("PM QoS value: %d\n", qos_val);
 	pm_qos_add_request(&cnss_pdata->qos_request, latency_type, qos_val);
 }
+#endif  /* (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)) */
 EXPORT_SYMBOL(cnss_sdio_request_pm_qos_type);
 
 int cnss_sdio_request_bus_bandwidth(int bandwidth)
@@ -210,6 +227,16 @@ int cnss_sdio_request_bus_bandwidth(int bandwidth)
 	return ret;
 }
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+void cnss_sdio_request_pm_qos(u32 qos_val)
+{
+	if (!cnss_pdata)
+		return;
+
+	pr_debug("PM QoS value: %d\n", qos_val);
+	cpu_latency_qos_add_request(&cnss_pdata->qos_request, qos_val);
+}
+#else
 void cnss_sdio_request_pm_qos(u32 qos_val)
 {
 	if (!cnss_pdata)
@@ -219,16 +246,26 @@ void cnss_sdio_request_pm_qos(u32 qos_val)
 	pm_qos_add_request(&cnss_pdata->qos_request,
 			   PM_QOS_CPU_DMA_LATENCY, qos_val);
 }
+#endif  /* (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)) */
 EXPORT_SYMBOL(cnss_sdio_request_pm_qos);
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 void cnss_sdio_remove_pm_qos(void)
 {
 	if (!cnss_pdata)
 		return;
-
+	cpu_latency_qos_remove_request(&cnss_pdata->qos_request);
+	pr_debug("PM QoS removed\n");
+}
+#else
+void cnss_sdio_remove_pm_qos(void)
+{
+	if (!cnss_pdata)
+		return;
 	pm_qos_remove_request(&cnss_pdata->qos_request);
 	pr_debug("PM QoS removed\n");
 }
+#endif  /* (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)) */
 EXPORT_SYMBOL(cnss_sdio_remove_pm_qos);
 
 static int cnss_put_hw_resources(struct device *dev)
