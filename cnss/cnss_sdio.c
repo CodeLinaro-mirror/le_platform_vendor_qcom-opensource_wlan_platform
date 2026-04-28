@@ -19,9 +19,15 @@
 #include <linux/io.h>
 #include <soc/qcom/subsystem_restart.h>
 #include <soc/qcom/subsystem_notif.h>
-#include <soc/qcom/ramdump.h>
 #include <soc/qcom/memory_dump.h>
+#include <linux/version.h>
+#ifdef CONFIG_CNSS_OUT_OF_TREE
+#include "cnss.h"
+#include "ramdump.h"
+#else
 #include <net/cnss.h>
+#include <soc/qcom/ramdump.h>
+#endif
 #include "cnss_common.h"
 #include <linux/pm_qos.h>
 #include <linux/gpio.h>
@@ -101,6 +107,7 @@ static struct cnss_sdio_data {
 	struct cnss_wlan_pinctrl_info pinctrl_info;
 	struct cnss_sdio_bus_bandwidth bus_bandwidth;
 	struct cnss_dev_platform_ops platform_ops;
+	int recovery_enabled;
 } *cnss_pdata;
 
 #define WLAN_RECOVERY_DELAY 1
@@ -166,6 +173,49 @@ static const struct sdio_device_id ar6k_id_table[] = {
 };
 MODULE_DEVICE_TABLE(sdio, ar6k_id_table);
 
+static ssize_t recovery_show(struct device *dev,
+			     struct device_attribute *attr,
+			     char *buf)
+{
+	if (!cnss_pdata)
+		return -ENODEV;
+
+	return scnprintf(buf, PAGE_SIZE, "%u\n", cnss_pdata->recovery_enabled);
+}
+
+static ssize_t recovery_store(struct device *dev,
+			      struct device_attribute *attr,
+			      const char *buf, size_t count)
+{
+	unsigned int recovery = 0;
+
+	if (!cnss_pdata)
+		return -ENODEV;
+
+	if (sscanf(buf, "%du", &recovery) != 1) {
+		pr_err("Invalid recovery sysfs command\n");
+		return -EINVAL;
+	}
+
+	pr_info("recovery_enabled changed from %d to %d\n",
+		cnss_pdata->recovery_enabled, !!(recovery));
+	cnss_pdata->recovery_enabled = !!(recovery);
+
+	return count;
+}
+
+static DEVICE_ATTR(recovery, 0644, recovery_show, recovery_store);
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+void cnss_sdio_request_pm_qos_type(int latency_type, u32 qos_val)
+{
+	if (!cnss_pdata)
+		return;
+
+	pr_debug("PM QoS value: %d\n", qos_val);
+	cpu_latency_qos_add_request(&cnss_pdata->qos_request, qos_val);
+}
+#else
 void cnss_sdio_request_pm_qos_type(int latency_type, u32 qos_val)
 {
 	if (!cnss_pdata)
@@ -174,6 +224,7 @@ void cnss_sdio_request_pm_qos_type(int latency_type, u32 qos_val)
 	pr_debug("PM QoS value: %d\n", qos_val);
 	pm_qos_add_request(&cnss_pdata->qos_request, latency_type, qos_val);
 }
+#endif  /* (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)) */
 EXPORT_SYMBOL(cnss_sdio_request_pm_qos_type);
 
 int cnss_sdio_request_bus_bandwidth(int bandwidth)
@@ -210,6 +261,16 @@ int cnss_sdio_request_bus_bandwidth(int bandwidth)
 	return ret;
 }
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
+void cnss_sdio_request_pm_qos(u32 qos_val)
+{
+	if (!cnss_pdata)
+		return;
+
+	pr_debug("PM QoS value: %d\n", qos_val);
+	cpu_latency_qos_add_request(&cnss_pdata->qos_request, qos_val);
+}
+#else
 void cnss_sdio_request_pm_qos(u32 qos_val)
 {
 	if (!cnss_pdata)
@@ -219,16 +280,26 @@ void cnss_sdio_request_pm_qos(u32 qos_val)
 	pm_qos_add_request(&cnss_pdata->qos_request,
 			   PM_QOS_CPU_DMA_LATENCY, qos_val);
 }
+#endif  /* (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)) */
 EXPORT_SYMBOL(cnss_sdio_request_pm_qos);
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0))
 void cnss_sdio_remove_pm_qos(void)
 {
 	if (!cnss_pdata)
 		return;
-
+	cpu_latency_qos_remove_request(&cnss_pdata->qos_request);
+	pr_debug("PM QoS removed\n");
+}
+#else
+void cnss_sdio_remove_pm_qos(void)
+{
+	if (!cnss_pdata)
+		return;
 	pm_qos_remove_request(&cnss_pdata->qos_request);
 	pr_debug("PM QoS removed\n");
 }
+#endif  /* (LINUX_VERSION_CODE >= KERNEL_VERSION(5, 15, 0)) */
 EXPORT_SYMBOL(cnss_sdio_remove_pm_qos);
 
 static int cnss_put_hw_resources(struct device *dev)
@@ -644,6 +715,11 @@ void cnss_sdio_device_crashed(void)
 	if (ssr_info->subsys) {
 		subsys_set_crash_status(ssr_info->subsys, true);
 		subsystem_restart_dev(ssr_info->subsys);
+	} else {
+		if (cnss_pdata && cnss_pdata->recovery_enabled)
+			cnss_sdio_schedule_recovery_work();
+		else
+			panic("subsys-restart: Resetting the SoC wlan crashed\n");
 	}
 }
 
@@ -1505,9 +1581,17 @@ static int cnss_sdio_probe(struct platform_device *pdev)
 		}
 	}
 
+	error = device_create_file(dev, &dev_attr_recovery);
+	if (error) {
+		pr_err("cnss sdio: recovery sys file creation failed\n");
+		goto err_attr_fw;
+	}
+
 	dev_info(&pdev->dev, "CNSS SDIO Driver registered\n");
 	return 0;
 
+err_attr_fw:
+	device_remove_file(dev, &dev_attr_recovery);
 err_bus_bandwidth_init:
 	cnss_subsys_exit();
 err_subsys_init:
@@ -1535,6 +1619,7 @@ static int cnss_sdio_remove(struct platform_device *pdev)
 	info = &cnss_pdata->cnss_sdio_info;
 	tsf_info = &info->cap_tsf_info;
 
+	device_remove_file(&pdev->dev, &dev_attr_recovery);
 	cnss_sdio_tsf_deinit(tsf_info);
 	cnss_sdio_deinit_bus_bandwidth();
 	cnss_sdio_wlan_exit();
