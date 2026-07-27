@@ -3848,7 +3848,7 @@ static void cnss_unregister_ramdump_v2(struct cnss_plat_data *plat_priv)
 	info_v2->dump_data_valid = false;
 }
 
-static int cnss_register_msm_ramdump(struct cnss_plat_data *plat_priv)
+int cnss_register_ramdump(struct cnss_plat_data *plat_priv)
 {
 	int ret = 0;
 
@@ -3870,13 +3870,10 @@ static int cnss_register_msm_ramdump(struct cnss_plat_data *plat_priv)
 		ret = -ENODEV;
 		break;
 	}
-
-	if (!ret)
-		plat_priv->is_msm_ramdump = true;
 	return ret;
 }
 
-static void cnss_unregister_msm_ramdump(struct cnss_plat_data *plat_priv)
+void cnss_unregister_ramdump(struct cnss_plat_data *plat_priv)
 {
 	switch (plat_priv->device_id) {
 	case QCA6174_DEVICE_ID:
@@ -3895,23 +3892,9 @@ static void cnss_unregister_msm_ramdump(struct cnss_plat_data *plat_priv)
 		cnss_pr_err("Unknown device ID: 0x%lx\n", plat_priv->device_id);
 		break;
 	}
-
-	plat_priv->is_msm_ramdump = false;
 }
 #else
-static inline int
-cnss_register_msm_ramdump(struct cnss_plat_data *plat_priv)
-{
-	return -EOPNOTSUPP;
-}
-
-static inline void
-cnss_unregister_msm_ramdump(struct cnss_plat_data *plat_priv)
-{
-}
-#endif /* CONFIG_QCOM_MEMORY_DUMP_V2 */
-
-static int cnss_register_full_ramdump(struct cnss_plat_data *plat_priv)
+int cnss_register_ramdump(struct cnss_plat_data *plat_priv)
 {
 	struct cnss_ramdump_info_v2 *info_v2 = &plat_priv->ramdump_info_v2;
 	struct cnss_dump_data *dump_data = dump_data = &info_v2->dump_data;
@@ -3940,36 +3923,16 @@ static int cnss_register_full_ramdump(struct cnss_plat_data *plat_priv)
 	return 0;
 }
 
-static void cnss_unregister_full_ramdump(struct cnss_plat_data *plat_priv)
+void cnss_unregister_ramdump(struct cnss_plat_data *plat_priv)
 {
-	struct cnss_ramdump_info_v2 *info_v2;
+	struct cnss_ramdump_info_v2 *info_v2 = &plat_priv->ramdump_info_v2;
 
-	info_v2 = &plat_priv->ramdump_info_v2;
 	info_v2->ramdump_dev = NULL;
 	kfree(info_v2->dump_data_vaddr);
 	info_v2->dump_data_vaddr = NULL;
 	info_v2->dump_data_valid = false;
 }
-
-int cnss_register_ramdump(struct cnss_plat_data *plat_priv)
-{
-	int ret;
-
-	/* First try to register msm ramdump, try the full way on failure */
-	ret = cnss_register_msm_ramdump(plat_priv);
-	if (ret)
-		ret = cnss_register_full_ramdump(plat_priv);
-
-	return ret;
-}
-
-void cnss_unregister_ramdump(struct cnss_plat_data *plat_priv)
-{
-	if (plat_priv->is_msm_ramdump)
-		cnss_unregister_msm_ramdump(plat_priv);
-	else
-		cnss_unregister_full_ramdump(plat_priv);
-}
+#endif /* CONFIG_QCOM_MEMORY_DUMP_V2 */
 
 #if IS_ENABLED(CONFIG_QCOM_MINIDUMP)
 int cnss_va_to_pa(struct device *dev, size_t size, void *va, dma_addr_t dma,
