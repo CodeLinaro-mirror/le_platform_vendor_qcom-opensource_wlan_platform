@@ -639,7 +639,6 @@ struct cnss_plat_data {
 	u32 *on_chip_pmic_board_ids;
 	bool no_bwscale;
 	bool sleep_clk;
-	bool is_msm_ramdump;
 	bool is_fw_managed_pwr;
 	struct device **pd_devs;
 	int pd_count;
