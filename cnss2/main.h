@@ -643,6 +643,7 @@ struct cnss_plat_data {
 	bool is_fw_managed_pwr;
 	struct device **pd_devs;
 	int pd_count;
+	bool genpd_suspend_on;
 	bool ipa_shared_cb_enable;
 };
 

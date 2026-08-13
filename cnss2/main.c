@@ -5206,8 +5206,15 @@ cnss_dt_type(struct cnss_plat_data *plat_priv)
 static inline bool
 cnss_resource_is_fw_managed(struct cnss_plat_data *plat_priv)
 {
-	return of_property_read_bool(plat_priv->plat_dev->dev.of_node,
-				     "firmware-managed-resources");
+	bool ret;
+
+	ret = of_property_read_bool(plat_priv->plat_dev->dev.of_node,
+				    "firmware-managed-resources");
+	plat_priv->genpd_suspend_on =
+		of_property_read_bool(plat_priv->plat_dev->dev.of_node,
+				      "qcom,genpd-suspend-on");
+
+	return ret;
 }
 
 static int cnss_wlan_device_init(struct cnss_plat_data *plat_priv)
