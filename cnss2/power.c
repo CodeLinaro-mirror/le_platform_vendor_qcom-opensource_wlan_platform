@@ -1226,6 +1226,13 @@ int cnss_fw_managed_domain_attach(struct cnss_plat_data *plat_priv)
 			return PTR_ERR(plat_priv->pd_devs[i]);
 		}
 		cnss_pr_info("Attached power domain %d\n", i);
+		if (plat_priv->genpd_suspend_on &&
+		    plat_priv->pd_devs[i]->pm_domain) {
+			struct generic_pm_domain *genpd =
+				pd_to_genpd(plat_priv->pd_devs[i]->pm_domain);
+			if (genpd)
+				genpd->flags |= GENPD_FLAG_ALWAYS_ON;
+		}
 	}
 
 	return 0;
